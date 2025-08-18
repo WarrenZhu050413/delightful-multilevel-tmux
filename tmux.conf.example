@@ -1,0 +1,106 @@
+# ============================================================================
+# DELIGHTFUL MULTILEVEL TMUX - EXAMPLE CONFIGURATION
+# ============================================================================
+#
+# This is a reference tmux configuration showing how to integrate the
+# 9-level navigation system with a basic tmux setup.
+#
+# INSTALLATION:
+# 1. Copy the "MULTILEVEL NAVIGATION" section below to your ~/.tmux.conf
+# 2. Customize the key bindings if needed (see CUSTOMIZATION.md)  
+# 3. Run: tmux source-file ~/.tmux.conf
+#
+# ============================================================================
+
+# Basic tmux configuration (customize as needed)
+unbind C-x
+set -g prefix C-x
+bind C-x send-prefix
+
+set -g base-index 1
+setw -g mode-keys vi
+set -g mouse on
+set-option -g default-terminal screen-256color
+
+# ============================================================================
+# BEGIN MULTILEVEL NAVIGATION - COPY THIS SECTION TO YOUR ~/.tmux.conf
+# ============================================================================
+#
+# USAGE:
+#   Direct jumps: Ctrl+X ! @ # $ % ^ & * (  → Levels 1-9
+#   Sequential:   Ctrl+V (down), Ctrl+B (up)
+#   Emergency:    Ctrl+X !  → Reset to Level 1
+#   Help:         Run `tmux-level-help` for current level info
+#   Status help:  Run `tmux-level-status --help` for format options
+#
+# STATUS BAR FORMATS:
+#   --visual:   [L3:X ●●●○○○○○○]  ← Current format
+#   --compact:  [L3:X]
+#   --full:     [L3:Ctrl+X] 
+#   --minimal:  [3]
+
+# Initialize level tracking variables
+set -g @current_level 1
+set -g @max_levels 9
+
+# Direct level jumps using Ctrl+X Shift+1-9 (!@#$%^&*()
+bind ! run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 1'
+bind @ run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 2'
+bind '#' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 3'
+bind '$' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 4'
+bind % run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 5'
+bind '^' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 6'
+bind '&' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 7'
+bind '*' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 8'
+bind '(' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 9'
+
+# Sequential navigation (replaces old Ctrl+V toggle)
+# Ctrl+V = go down one level, Ctrl+B = go up one level  
+bind -T root C-v run-shell '~/.local/bin/tmux-multilevel/tmux-level-down'
+bind -T root C-b run-shell '~/.local/bin/tmux-multilevel/tmux-level-up'
+
+# Note: Ctrl+X Ctrl+X removed to preserve copy-mode binding (see bind-key x copy-mode below)
+
+# Define key-tables for each level (levels 2-9 need isolated tables)
+# Level 1 uses 'root' (default), others get their own tables
+
+# Individual level key-tables (all use Ctrl+X prefix consistently)
+# Note: Actual bindings are managed by tmux-add-level-bindings script
+
+# Session persistence for level state
+set-hook -g session-created 'run-shell "
+if [ -f ~/.tmux_level_state ]; then
+    level=$(cat ~/.tmux_level_state 2>/dev/null || echo 1)
+    ~/.local/bin/tmux-multilevel/tmux-goto-level $level 2>/dev/null || ~/.local/bin/tmux-multilevel/tmux-level-reset
+fi"'
+
+# Status Bar with multilevel indicator
+set-option -g status-interval 1
+set-option -g status-left ''
+# Multi-level navigation status: Shows [L3:X ●●●○○○○○○] format with color coding
+# Available formats: --compact, --full, --minimal, --visual
+# For help: run `tmux-level-help` or `tmux-level-status --help`
+set-option -g status-right "#(~/.local/bin/tmux-multilevel/tmux-level-status --visual) #{?client_prefix,[ACTIVE],} | %l:%M%p"
+
+# ============================================================================
+# END MULTILEVEL NAVIGATION
+# ============================================================================
+
+# Resume your existing tmux configuration below this line...
+
+# Basic key bindings (customize as needed)
+bind-key v split-window -h -c "#{pane_current_path}"
+bind-key s split-window -v -c "#{pane_current_path}" 
+bind-key h select-pane -L
+bind-key j select-pane -D
+bind-key k select-pane -U
+bind-key l select-pane -R
+
+bind-key x copy-mode
+bind-key p paste-buffer
+
+# Status Bar styling (customize colors as needed)
+set-window-option -g window-status-current-style fg=magenta
+set-option -g status-style fg=default,bg=black
+set-option -g pane-active-border-style fg=colour215,bold
+set-option -g pane-border-style fg=colour238

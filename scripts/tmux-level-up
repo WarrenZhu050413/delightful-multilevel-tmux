@@ -1,0 +1,25 @@
+#!/bin/bash
+# tmux-level-up - Move up one level (higher number to lower number)
+# Usage: tmux-level-up
+
+set -euo pipefail
+
+main() {
+    # Get current level, default to 1 if not set
+    local current_level
+    current_level=$(tmux show-option -gv @current_level 2>/dev/null || echo "1")
+    
+    # Calculate new level (boundary: stay at level 1)
+    local new_level=$((current_level > 1 ? current_level - 1 : 1))
+    
+    # If already at level 1, show message and exit
+    if [[ $current_level -eq 1 ]]; then
+        tmux display-message "Already at Level 1 (outermost)"
+        exit 0
+    fi
+    
+    # Switch to new level
+    ~/.local/bin/tmux-multilevel/tmux-goto-level "$new_level"
+}
+
+main "$@"
