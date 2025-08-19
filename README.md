@@ -1,8 +1,14 @@
 # 🚀 Delightful Multilevel Tmux
 
-> *"I love tmux. But I love it even more when my tmux can branch into different workspaces, and branch within these workspaces. This is ultra-helpful when I'm using Claude Code or other CLI coding tools. The branching and exploratory nature allows me to think and explore thoughts and ideas quicker with much less friction. It makes programming so much more fun! 😊"*
+## *"One tmux to rule them all"*
 
-Born from a love of **exploratory programming** and **frictionless thinking**, this is a sophisticated **9-level navigation system** for tmux that transforms how you navigate nested environments. Perfect for developers who think in branches, explore in parallel, and code with curiosity.
+> *I love Tmux. I love splitting panes and creating new sessions. But I find that I often need nested tmux so that I can let my tmux sessions reflect how my mind works. I like zooming in and out using `<prefix> z` in tmux. But I find that I often want to zoom into another nested session. For example, I want a session where I both have A) a claude code session open, and B) a vim session that looks at various files. Hence, delightful-multi-level-tmux was born!*
+>
+> *I tried different ways of implementing this. Went into some bugs when I tried to make everything automatic. And figured that the easiest way is to let the user personally set the tmux levels with `tmux-start-level {num: int}`. I am sorry if this gives additional work for you! (tab autocomplete should make this less of a slog as it seems. You can also create your own alias to quickly start your new tmux session).*
+>
+> *I really hope that using this can be delightful, and unlock a new dimension of tmux that you have not considered before :). At least for me, this brings a lot of joy and happiness to my life. :)*
+
+Born from a love of **mental model mapping** and **nested thinking**, this is a sophisticated **3-level navigation system** for tmux that transforms how you navigate nested environments. Perfect for developers who think in layers, need multiple contexts, and want their tools to match their cognitive flow.
 
 ## ✨ Why You'll Love This
 
