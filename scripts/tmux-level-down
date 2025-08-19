@@ -1,19 +1,14 @@
 #!/bin/bash
-# tmux-level-down - Go down one level (1→2→3→1...)
-# Part of 3-level tmux navigation system
+# tmux-level-down - Go down one level (1→2→3...→9→1...)
+# Part of 9-level tmux navigation system
 
 set -euo pipefail
 
 # Get current active level
 current_level=$(tmux show-option -gv @active_level 2>/dev/null || echo "1")
 
-# Calculate next level (with wrapping: 1→2, 2→3, 3→1)
-case "$current_level" in
-    1) target_level=2 ;;
-    2) target_level=3 ;;
-    3) target_level=1 ;;
-    *) target_level=2 ;;  # Fallback to level 2
-esac
+# Calculate next level (with wrapping: 1→2, 2→3, ..., 9→1)
+target_level=$(( (current_level % 9) + 1 ))
 
 # Navigate to target level
 exec ~/.local/bin/tmux-multilevel/tmux-goto-level "$target_level"

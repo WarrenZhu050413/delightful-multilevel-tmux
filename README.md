@@ -8,7 +8,7 @@
 >
 > *I really hope that using this can be delightful, and unlock a new dimension of tmux that you have not considered before :). At least for me, this brings a lot of joy and happiness to my life. :)*
 
-Born from a love of **mental model mapping** and **nested thinking**, this is a sophisticated **3-level navigation system** for tmux that transforms how you navigate nested environments. Perfect for developers who think in layers, need multiple contexts, and want their tools to match their cognitive flow.
+Born from a love of **mental model mapping** and **nested thinking**, this is a sophisticated **9-level navigation system** for tmux that transforms how you navigate nested environments. Perfect for developers who think in layers, need multiple contexts, and want their tools to match their cognitive flow.
 
 ## ✨ Why You'll Love This
 
@@ -32,8 +32,9 @@ Passthrough: [tmux:Nav:L3|Session:L2] [●●●○○○○○○] [ACTIVE] | 2
 Deep Active: [work:L8 ✓] [●●●●●●●●○] [ACTIVE] | 2:34pm     (sage green)
 ```
 
-**Perfect Nested Sessions (v1.1.0):**
+**Perfect Nested Sessions & 9-Level Support (v2.0.0):**
 - `tmux-start-level` now creates true hierarchical nesting
+- Extended from 3 levels to full 9-level navigation
 - Each session contains the next level naturally
 - No more client switching - proper session containment
 
@@ -113,6 +114,7 @@ tmux-start-level 2                          # Basic Level 2 session
 tmux-start-level 3 -s project               # Named Level 3 session  
 tmux-start-level 2 -s work -c ~/projects    # Level 2, named, specific directory
 tmux-start-level 4 -d -s background         # Level 4, detached session
+tmux-start-level 9 -s deep                  # Level 9, deepest session
 ```
 
 ### **2. Navigate to Target Level**
@@ -134,8 +136,8 @@ Ctrl+X (    # Activate Level 9 (deepest)
 
 ### **4. Sequential Navigation**
 ```bash
-Ctrl+V      # Go down one level (1→2→3...)
-Ctrl+B      # Go up one level (9→8→7...)
+Ctrl+V      # Go down one level (1→2→3...→9→1...)
+Ctrl+B      # Go up one level (9→8→7...→1→9...)
 ```
 
 ### **5. Status Bar Formats**
@@ -222,7 +224,21 @@ This system uses **tmux key-tables** to create isolated navigation environments 
 - **bash** (for scripts)
 - **~/.local/bin in PATH** (automatic check during installation)
 
-## 🆕 What's New in v1.1.0
+## 🆕 What's New in v2.0.0
+
+### 🎯 Extended to 9-Level System
+- **Enhancement**: Expanded from 3-level to full 9-level navigation support
+- **Architecture**: All scripts now support levels 1-9 with proper validation  
+- **Keybindings**: Added Ctrl+X $%^&*( for levels 4-9
+- **Sequential Navigation**: Improved wrapping with mathematical formulas instead of hardcoded cases
+- **Visual Status**: Status bar dots now show all 9 levels (●●●●●○○○○)
+
+### 🧮 Mathematical Navigation Logic
+- **tmux-level-down**: `(current % 9) + 1` for 1→2→3...→9→1 wrapping
+- **tmux-level-up**: `((current-2+9) % 9) + 1` for 9→8→7...→1→9 wrapping
+- **Result**: Seamless navigation through all 9 levels without edge cases
+
+## 🎉 What's New in v1.1.0
 
 ### 🎯 Session-Specific Status Lines
 - **Problem**: Multiple sessions shared global status, showed wrong names on restart

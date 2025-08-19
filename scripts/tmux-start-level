@@ -1,18 +1,18 @@
 #!/bin/bash
-# tmux-start-level - Start tmux session with level identity (3-level system)
-# Usage: tmux-start-level <1|2|3> [tmux-new-session-options...]
+# tmux-start-level - Start tmux session with level identity (9-level system)
+# Usage: tmux-start-level <1-9> [tmux-new-session-options...]
 
 set -euo pipefail
 
 show_help() {
     cat << 'EOF'
-tmux-start-level - Start tmux session with level identity (3-level system)
+tmux-start-level - Start tmux session with level identity (9-level system)
 
 USAGE:
     tmux-start-level <level> [tmux-options...]
 
 ARGUMENTS:
-    level               Session identity level (1, 2, or 3)
+    level               Session identity level (1-9)
     tmux-options       Any flags supported by 'tmux new-session'
 
 EXAMPLES:
@@ -26,7 +26,7 @@ NOTES:
     - Sets @session_level variable for session identity
     - All tmux new-session options are supported and passed through
     - Sessions start in passthrough mode, use navigation to activate
-    - Use Ctrl+X !, @, # to navigate to levels 1, 2, 3
+    - Use Ctrl+X !@#$%^&*( to navigate to levels 1-9
 
 SEE ALSO:
     tmux-goto-level     Switch navigation to specific level
@@ -52,10 +52,10 @@ fi
 level=$1
 shift  # Remove level from arguments
 
-# Validate level is 1, 2, or 3
+# Validate level is 1-9
 case "$level" in
-    1|2|3) ;;
-    *) echo "❌ Error: Level must be 1, 2, or 3, got '$level'"
+    [1-9]) ;;
+    *) echo "❌ Error: Level must be 1-9, got '$level'"
        echo ""
        show_help
        exit 1 ;;

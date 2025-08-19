@@ -1,6 +1,6 @@
 #!/bin/bash
-# tmux-goto-level - Navigate to specific level in 3-level system
-# Usage: tmux-goto-level <1|2|3>
+# tmux-goto-level - Navigate to specific level in 9-level system
+# Usage: tmux-goto-level <1-9>
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ show_error() {
 # Input validation
 validate_level() {
     case "$1" in
-        1|2|3) return 0 ;;
+        [1-9]) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -31,17 +31,17 @@ detect_session_level() {
     echo "$level"
 }
 
-# Main function - implements manual re-evaluation for 3-level system
+# Main function - implements manual re-evaluation for 9-level system
 main() {
     if [[ $# -ne 1 ]]; then
-        show_error "Usage: tmux-goto-level <1|2|3>"
+        show_error "Usage: tmux-goto-level <1-9>"
         exit 1
     fi
 
     local target_level="$1"
     
     if ! validate_level "$target_level"; then
-        show_error "Level must be 1, 2, or 3, got '$target_level'"
+        show_error "Level must be 1-9, got '$target_level'"
         exit 1
     fi
     

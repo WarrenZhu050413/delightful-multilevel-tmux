@@ -23,17 +23,17 @@ set -g mouse on
 set-option -g default-terminal screen-256color
 
 # ============================================================================
-# BEGIN 3-LEVEL NAVIGATION - COPY THIS SECTION TO YOUR ~/.tmux.conf
+# BEGIN 9-LEVEL NAVIGATION - COPY THIS SECTION TO YOUR ~/.tmux.conf
 # ============================================================================
 #
-# 3-LEVEL WORKFLOW:
+# 9-LEVEL WORKFLOW:
 #   1. Start sessions with level identity: `tmux-start-level 2 -s project`
 #   2. Navigate to target level: Ctrl+X @ (for Level 2)
 #   3. When levels match: Normal tmux commands work (create panes, etc.)
 #   4. When levels differ: Session in passthrough mode (transparent)
 #
 # NAVIGATION:
-#   Direct jumps: Ctrl+X ! @ #  → Levels 1, 2, 3
+#   Direct jumps: Ctrl+X !@#$%^&*(  → Levels 1-9
 #   Sequential:   Ctrl+V (down), Ctrl+B (up) with wrapping
 #   Emergency:    Ctrl+X !  → Always back to Level 1
 #   Help:         Run `tmux-level-help` for current level info
@@ -48,12 +48,18 @@ set-option -g default-terminal screen-256color
 
 # Initialize level tracking variables
 set -g @active_level 1
-set -g @max_levels 3
+set -g @max_levels 9
 
-# Direct level jumps using Ctrl+X Shift+1-3 (!@#)
+# Direct level jumps using Ctrl+X Shift+1-9 (!@#$%^&*())
 bind ! run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 1'
 bind @ run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 2'
 bind '#' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 3'
+bind '$' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 4'
+bind % run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 5'
+bind '^' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 6'
+bind '&' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 7'
+bind '*' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 8'
+bind '(' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 9'
 
 # Sequential navigation
 bind -T root C-v run-shell '~/.local/bin/tmux-multilevel/tmux-level-down'
@@ -66,6 +72,12 @@ bind -T off C-b run-shell '~/.local/bin/tmux-multilevel/tmux-level-up'
 bind -T off ! run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 1'
 bind -T off @ run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 2'
 bind -T off '#' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 3'
+bind -T off '$' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 4'
+bind -T off % run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 5'
+bind -T off '^' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 6'
+bind -T off '&' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 7'
+bind -T off '*' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 8'
+bind -T off '(' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 9'
 
 # Session persistence for active level state
 set-hook -g session-created 'run-shell "

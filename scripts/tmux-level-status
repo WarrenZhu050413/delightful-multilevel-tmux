@@ -16,7 +16,7 @@ FORMATS:
     --compact (default)  [session:L2 ✓] or [session:Nav:L2|Session:L1]
     --full              [session:L2:Ctrl+X ✓] or [session:Nav:L2:Ctrl+X|Session:L1]
     --minimal           [session:2✓] or [session:2|1]
-    --visual            [session:L2 ✓] [●●○] or [session:Nav:L2|Session:L1] [●●○]
+    --visual            [session:L2 ✓] [●●○○○○○○○] or [session:Nav:L2|Session:L1] [●●○○○○○○○]
     --help, -h          Show this help
 
 DUAL-STATE DISPLAY:
@@ -102,9 +102,9 @@ main() {
             fi
             ;;
         --visual|visual)
-            # Visual dots with level info (3-level system)
+            # Visual dots with level info (9-level system)
             local filled=$(printf "%*s" "$active_level" "" | sed 's/ /●/g')
-            local empty=$(printf "%*s" $((3 - active_level)) "" | sed 's/ /○/g')
+            local empty=$(printf "%*s" $((9 - active_level)) "" | sed 's/ /○/g')
             if [[ $is_active == true ]]; then
                 output="[${session_name}:L${active_level} ✓] [${filled}${empty}]"
             else
