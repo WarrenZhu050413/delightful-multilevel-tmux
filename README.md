@@ -19,12 +19,17 @@ Born from a love of **exploratory programming** and **frictionless thinking**, t
 
 ## 🎬 Quick Demo
 
-**New Dual-State Display:**
+**Session-Aware Status Display (v1.1.0):**
 ```
-Active:     [Level:L3 ✓] [●●●○○○○○○] [ACTIVE] | 2:34pm     (mint green)
-Passthrough: [Nav:L3|Session:L2] [●●●○○○○○○] [ACTIVE] | 2:34pm (soft blue)
-Deep Active: [Level:L8 ✓] [●●●●●●●●○] [ACTIVE] | 2:34pm     (sage green)
+Active:     [coupling:L3 ✓] [●●●○○○○○○] [ACTIVE] | 2:34pm     (mint green)
+Passthrough: [tmux:Nav:L3|Session:L2] [●●●○○○○○○] [ACTIVE] | 2:34pm (soft blue)
+Deep Active: [work:L8 ✓] [●●●●●●●●○] [ACTIVE] | 2:34pm     (sage green)
 ```
+
+**Perfect Nested Sessions (v1.1.0):**
+- `tmux-start-level` now creates true hierarchical nesting
+- Each session contains the next level naturally
+- No more client switching - proper session containment
 
 **Workflow Example:**
 ```bash
@@ -211,6 +216,28 @@ This system uses **tmux key-tables** to create isolated navigation environments 
 - **bash** (for scripts)
 - **~/.local/bin in PATH** (automatic check during installation)
 
+## 🆕 What's New in v1.1.0
+
+### 🎯 Session-Specific Status Lines
+- **Problem**: Multiple sessions shared global status, showed wrong names on restart
+- **Solution**: Each session now has its own status line with correct session name
+- **Benefit**: `[coupling:L2 ✓]` vs `[tmux:L1 ✓]` - always shows the right context
+
+### 🌳 True Nested Sessions  
+- **Problem**: `tmux-start-level` switched clients instead of creating hierarchy
+- **Solution**: Now creates proper nested sessions within current tmux context
+- **Benefit**: True containment - Level 2 lives inside Level 1, Level 3 inside Level 2
+
+### 🔧 Simplified Architecture
+- **Removed**: Complex detached session logic, kill/switch client code  
+- **Added**: Direct `tmux new-session` with command chaining
+- **Result**: More reliable, fewer edge cases, cleaner code
+
+### 🐛 Bug Fixes
+- Fixed: Sessions exiting immediately when created inside tmux
+- Fixed: Status lines showing wrong session names after restart
+- Fixed: Client switching breaking session hierarchy
+
 ## 📁 File Locations
 
 ```
@@ -253,6 +280,21 @@ tmux show-options -g status-interval
 
 # Test status script directly:  
 tmux-level-status --visual
+
+# Test session-specific status:
+TMUX_SESSION=mysession tmux-level-status --compact
+```
+
+### Nested Sessions Not Working (v1.1.0+)
+```bash
+# Verify session hierarchy:
+tmux list-sessions
+
+# Check if session has proper level set:
+tmux show-option -t session_name @session_level
+
+# Test nested creation manually:
+tmux new-session -s test \; set-option @session_level "2"
 ```
 
 ## 🤝 Contributing
