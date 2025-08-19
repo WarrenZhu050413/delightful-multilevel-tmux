@@ -66,18 +66,10 @@ bind -T root C-v run-shell '~/.local/bin/tmux-multilevel/tmux-level-down'
 bind -T root C-b run-shell '~/.local/bin/tmux-multilevel/tmux-level-up'
 
 # Off table for passthrough mode (used by session-specific active/passthrough system)
-# When sessions are inactive, they use this table for navigation only
+# When sessions are inactive, they use this table for sequential navigation only
+# Level jumps require Ctrl+X prefix for consistency across all session types
 bind -T off C-v run-shell '~/.local/bin/tmux-multilevel/tmux-level-down'
 bind -T off C-b run-shell '~/.local/bin/tmux-multilevel/tmux-level-up'
-bind -T off ! run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 1'
-bind -T off @ run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 2'
-bind -T off '#' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 3'
-bind -T off '$' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 4'
-bind -T off % run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 5'
-bind -T off '^' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 6'
-bind -T off '&' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 7'
-bind -T off '*' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 8'
-bind -T off '(' run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 9'
 
 # Session persistence for active level state
 set-hook -g session-created 'run-shell "
