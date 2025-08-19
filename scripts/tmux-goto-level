@@ -4,10 +4,16 @@
 
 set -euo pipefail
 
-# Configuration - All levels use Ctrl+X prefix
-declare -a PREFIXES=("X" "X" "X" "X" "X" "X" "X" "X" "X")
-declare -a KEY_TABLES=("root" "level2" "level3" "level4" "level5" "level6" "level7" "level8" "level9")
-declare -a PREFIX_KEYS=("C-x" "C-x" "C-x" "C-x" "C-x" "C-x" "C-x" "C-x" "C-x")
+# Session detection function
+detect_session_level() {
+    # Check TMUX_LEVEL environment variable (primary method)
+    if [[ -n ${TMUX_LEVEL:-} ]]; then
+        echo "$TMUX_LEVEL"
+    else
+        # Default to level 1 if not set
+        echo "1"
+    fi
+}
 
 # Input validation
 validate_level() {
@@ -28,7 +34,7 @@ show_error() {
     tmux set-option -u status-style 2>/dev/null || true
 }
 
-# Main function
+# Main function - implements active/passthrough pattern
 main() {
     if [[ $# -ne 1 ]]; then
         show_error "Usage: tmux-goto-level <1-9>"
@@ -41,38 +47,51 @@ main() {
     if ! validate_level "$target_level"; then
         exit 1
     fi
-
-    # Array indices (0-based)
-    local idx=$((target_level - 1))
     
-    # Set prefix for target level
-    local prefix_key="${PREFIX_KEYS[$idx]}"
-    local key_table="${KEY_TABLES[$idx]}"
-    local prefix_char="${PREFIXES[$idx]}"
+    # Get current session's level
+    local current_session_level
+    current_session_level=$(detect_session_level)
     
-    # Apply changes
-    if ! tmux set-option -g prefix "$prefix_key" 2>/dev/null; then
-        show_error "Error: Failed to set prefix to $prefix_key"
+    # Step 1: Set ALL sessions to passthrough mode (following 2-level pattern)
+    if ! tmux set-option -g prefix None 2>/dev/null; then
+        show_error "Error: Failed to set prefix to None"
         exit 1
     fi
     
-    if ! tmux set-option -g key-table "$key_table" 2>/dev/null; then
-        show_error "Error: Failed to set key-table to $key_table"
+    if ! tmux set-option -g key-table off 2>/dev/null; then
+        show_error "Error: Failed to set key-table to off"
         exit 1
     fi
     
-    # Update current level state
-    if ! tmux set-option -g @current_level "$target_level" 2>/dev/null; then
-        show_error "Warning: Could not save level state"
+    # Step 2: If current session matches target level, activate it
+    if [[ $current_session_level -eq $target_level ]]; then
+        # Restore normal tmux operation for this session
+        if ! tmux set-option -g prefix C-x 2>/dev/null; then
+            show_error "Error: Failed to restore prefix"
+            exit 1
+        fi
+        
+        if ! tmux set-option -g key-table root 2>/dev/null; then
+            show_error "Error: Failed to set key-table to root"
+            exit 1
+        fi
+        
+        # Visual confirmation - this session is now active
+        tmux display-message "Level $target_level ACTIVE (session control enabled)"
+    else
+        # This session is now in passthrough mode
+        tmux display-message "Level $target_level active (this session: L$current_session_level passthrough)"
     fi
     
-    # Refresh clients to update status bar
+    # Step 3: Update global navigation state
+    if ! tmux set-option -g @active_level "$target_level" 2>/dev/null; then
+        show_error "Warning: Could not save active level state"
+    fi
+    
+    # Step 4: Refresh clients to update status bar
     tmux refresh-client -S 2>/dev/null || true
     
-    # Visual confirmation
-    tmux display-message "Level $target_level: Ctrl+$(echo $prefix_char | tr '[:lower:]' '[:upper:]')"
-    
-    # Save state for persistence
+    # Step 5: Save state for persistence
     echo "$target_level" > ~/.tmux_level_state 2>/dev/null || true
 }
 

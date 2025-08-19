@@ -13,11 +13,15 @@ USAGE:
     tmux-level-status [FORMAT]
 
 FORMATS:
-    --compact (default)  [L3:X]
-    --full              [L3:Ctrl+X]
-    --minimal           [3]
-    --visual            [L3:X ●●●○○○○○○]
+    --compact (default)  [Level:L3 ✓] or [Nav:L3|Session:L2]
+    --full              [Level:L3:Ctrl+X ✓] or [Nav:L3:Ctrl+X|Session:L2]
+    --minimal           [3✓] or [3|2]
+    --visual            [Level:L3 ✓] [●●●○○○○○○] or [Nav:L3|Session:L2] [●●●○○○○○○]
     --help, -h          Show this help
+
+DUAL-STATE DISPLAY:
+    Active:     [Level:L3 ✓] - This session matches navigation level (can control tmux)
+    Passthrough: [Nav:L3|Session:L2] - Different levels (session in passthrough mode)
 
 EXAMPLES:
     # Use in tmux status bar
@@ -27,10 +31,12 @@ EXAMPLES:
     tmux-level-status --compact
     tmux-level-status --visual
 
-COLOR CODING:
-    Levels 1-3: Default color (shallow nesting)
-    Levels 4-6: Orange (#[fg=colour214]) (medium nesting) 
-    Levels 7-9: Red (#[fg=colour196]) (deep nesting warning)
+SOOTHING COLOR PALETTE:
+    Active Session:
+      Levels 1-3: Mint green (#[fg=colour156]) (harmony)
+      Levels 4-6: Soft amber (#[fg=colour179]) (medium nesting)
+      Levels 7-9: Sage green (#[fg=colour108]) (deep nesting)
+    Passthrough: Soft blue (#[fg=colour67]) (inactive indication)
 
 SEE ALSO:
     tmux-level-help     Show navigation commands for current level
@@ -40,10 +46,25 @@ EOF
     exit 0
 fi
 
+# Session detection function (same as tmux-goto-level)
+detect_session_level() {
+    # Check TMUX_LEVEL environment variable (primary method)
+    if [[ -n ${TMUX_LEVEL:-} ]]; then
+        echo "$TMUX_LEVEL"
+    else
+        # Default to level 1 if not set
+        echo "1"
+    fi
+}
+
 main() {
-    # Get current level, default to 1 if not set
-    local current_level
-    current_level=$(tmux show-option -gv @current_level 2>/dev/null || echo "1")
+    # Get navigation level (which level is active globally)
+    local active_level
+    active_level=$(tmux show-option -gv @active_level 2>/dev/null || echo "1")
+    
+    # Get current session level
+    local session_level
+    session_level=$(detect_session_level)
     
     # All levels use Ctrl+X prefix
     local prefix_char="X"
@@ -52,35 +73,67 @@ main() {
     local format_type="${1:-compact}"
     local output=""
     
+    # Determine if session is active (levels match) or passthrough (levels differ)
+    local is_active=false
+    if [[ $active_level -eq $session_level ]]; then
+        is_active=true
+    fi
+    
     case "$format_type" in
         --compact|compact)
-            output="[L${current_level}:${prefix_char}]"
+            if [[ $is_active == true ]]; then
+                output="[Level:L${active_level} ✓]"
+            else
+                output="[Nav:L${active_level}|Session:L${session_level}]"
+            fi
             ;;
         --full|full)
-            output="[L${current_level}:Ctrl+${prefix_char}]"
+            if [[ $is_active == true ]]; then
+                output="[Level:L${active_level}:Ctrl+${prefix_char} ✓]"
+            else
+                output="[Nav:L${active_level}:Ctrl+${prefix_char}|Session:L${session_level}]"
+            fi
             ;;
         --minimal|minimal)
-            output="[${current_level}]"
+            if [[ $is_active == true ]]; then
+                output="[${active_level}✓]"
+            else
+                output="[${active_level}|${session_level}]"
+            fi
             ;;
         --visual|visual)
-            # Visual dots with level text: [L3:X ●●●○○○○○○]
-            local filled=$(printf "%*s" "$current_level" "" | sed 's/ /●/g')
-            local empty=$(printf "%*s" $((9 - current_level)) "" | sed 's/ /○/g')
-            output="[L${current_level}:${prefix_char} ${filled}${empty}]"
+            # Visual dots with level info
+            local filled=$(printf "%*s" "$active_level" "" | sed 's/ /●/g')
+            local empty=$(printf "%*s" $((9 - active_level)) "" | sed 's/ /○/g')
+            if [[ $is_active == true ]]; then
+                output="[Level:L${active_level} ✓] [${filled}${empty}]"
+            else
+                output="[Nav:L${active_level}|Session:L${session_level}] [${filled}${empty}]"
+            fi
             ;;
         *)
             # Default to compact
-            output="[L${current_level}:${prefix_char}]"
+            if [[ $is_active == true ]]; then
+                output="[Level:L${active_level} ✓]"
+            else
+                output="[Nav:L${active_level}|Session:L${session_level}]"
+            fi
             ;;
     esac
     
-    # Color coding for deep nesting (levels 7-9)
-    if [[ $current_level -ge 7 ]]; then
-        echo "#[fg=colour196]${output}#[default]"  # Red for deep nesting
-    elif [[ $current_level -ge 4 ]]; then
-        echo "#[fg=colour214]${output}#[default]"  # Orange for medium nesting
+    # Soothing color palette (replacing harsh reds/oranges)
+    if [[ $is_active == true ]]; then
+        # Session is active - use harmony colors
+        if [[ $active_level -ge 7 ]]; then
+            echo "#[fg=colour108]${output}#[default]"  # Sage green for deep nesting (was red)
+        elif [[ $active_level -ge 4 ]]; then
+            echo "#[fg=colour179]${output}#[default]"  # Soft amber for medium nesting (was orange)
+        else
+            echo "#[fg=colour156]${output}#[default]"  # Mint green for shallow nesting (harmony)
+        fi
     else
-        echo "$output"  # Default color for shallow nesting
+        # Session is in passthrough - use soft blue
+        echo "#[fg=colour67]${output}#[default]"  # Soft blue for passthrough indication
     fi
 }
 

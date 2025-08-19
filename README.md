@@ -19,11 +19,27 @@ Born from a love of **exploratory programming** and **frictionless thinking**, t
 
 ## 🎬 Quick Demo
 
+**New Dual-State Display:**
 ```
-Level 1: [L1:X ●○○○○○○○○] [ACTIVE] | 2:34pm
-Level 3: [L3:X ●●●○○○○○○] [ACTIVE] | 2:34pm  
-Level 7: [L7:X ●●●●●●●○○] [ACTIVE] | 2:34pm  (orange warning)
-Level 9: [L9:X ●●●●●●●●●] [ACTIVE] | 2:34pm  (red warning)
+Active:     [Level:L3 ✓] [●●●○○○○○○] [ACTIVE] | 2:34pm     (mint green)
+Passthrough: [Nav:L3|Session:L2] [●●●○○○○○○] [ACTIVE] | 2:34pm (soft blue)
+Deep Active: [Level:L8 ✓] [●●●●●●●●○] [ACTIVE] | 2:34pm     (sage green)
+```
+
+**Workflow Example:**
+```bash
+# 1. Start Level 2 session
+tmux-start-level 2 -s project
+
+# 2. Navigate to Level 2 (activates this session)
+Ctrl+X @  → [Level:L2 ✓] [●●○○○○○○○]
+
+# 3. Create panes normally (works because levels match)
+Ctrl+X v  → split-window works!
+Ctrl+X s  → split-window works!
+
+# 4. Navigate to Level 3 (this session becomes passthrough) 
+Ctrl+X #  → [Nav:L3|Session:L2] [●●●○○○○○○]
 ```
 
 ## ⚡ Quick Installation
@@ -66,49 +82,64 @@ cd delightful-multilevel-tmux
    tmux source-file ~/.tmux.conf
    ```
 
-4. **Test it works**:
+4. **Test the new workflow**:
    ```bash
+   # Test helper script
+   tmux-start-level --help
+   
+   # Test navigation
    tmux-level-help
+   
+   # Test status display
+   tmux-level-status --visual
    ```
 
-## 🎯 Usage
+## 🎯 New Workflow
 
-### Direct Level Jumps
+### **1. Start Sessions with Level Identity**
 ```bash
-Ctrl+X !    # Jump to Level 1 (outermost)
-Ctrl+X @    # Jump to Level 2
-Ctrl+X #    # Jump to Level 3
-Ctrl+X $    # Jump to Level 4
-Ctrl+X %    # Jump to Level 5
-Ctrl+X ^    # Jump to Level 6
-Ctrl+X &    # Jump to Level 7
-Ctrl+X *    # Jump to Level 8
-Ctrl+X (    # Jump to Level 9 (deepest)
+tmux-start-level 2                          # Basic Level 2 session
+tmux-start-level 3 -s project               # Named Level 3 session  
+tmux-start-level 2 -s work -c ~/projects    # Level 2, named, specific directory
+tmux-start-level 4 -d -s background         # Level 4, detached session
 ```
 
-### Sequential Navigation
+### **2. Navigate to Target Level**
+```bash
+Ctrl+X !    # Activate Level 1 (outermost)
+Ctrl+X @    # Activate Level 2
+Ctrl+X #    # Activate Level 3
+Ctrl+X $    # Activate Level 4
+Ctrl+X %    # Activate Level 5
+Ctrl+X ^    # Activate Level 6
+Ctrl+X &    # Activate Level 7
+Ctrl+X *    # Activate Level 8
+Ctrl+X (    # Activate Level 9 (deepest)
+```
+
+### **3. Understand Session States**
+- **Active**: `[Level:L3 ✓]` - Your session controls tmux (create panes, windows, etc.)
+- **Passthrough**: `[Nav:L3|Session:L2]` - Your session is transparent (commands pass through)
+
+### **4. Sequential Navigation**
 ```bash
 Ctrl+V      # Go down one level (1→2→3...)
 Ctrl+B      # Go up one level (9→8→7...)
 ```
 
-### Emergency Escape
+### **5. Status Bar Formats**
 ```bash
-Ctrl+X !    # Always jumps to Level 1 (works from any level)
+tmux-level-status --visual   # [Level:L3 ✓] [●●●○○○○○○] (default)
+tmux-level-status --compact  # [Level:L3 ✓] or [Nav:L3|Session:L2]
+tmux-level-status --full     # [Level:L3:Ctrl+X ✓] or [Nav:L3:Ctrl+X|Session:L2]
+tmux-level-status --minimal  # [3✓] or [3|2]
 ```
 
-### Status Bar Formats
+### **6. Help Commands**
 ```bash
-tmux-level-status --visual   # [L3:X ●●●○○○○○○] (default)
-tmux-level-status --compact  # [L3:X]
-tmux-level-status --full     # [L3:Ctrl+X]
-tmux-level-status --minimal  # [3]
-```
-
-### Help Commands
-```bash
+tmux-start-level --help      # Show session creation options
 tmux-level-help              # Show navigation help for current level
-tmux-level-status --help     # Show status format options
+tmux-level-status --help     # Show status format options  
 tmux-level-reset            # Emergency reset to Level 1
 ```
 

@@ -1,0 +1,74 @@
+#!/bin/bash
+# tmux-start-level - Start tmux session with level identity
+# Usage: tmux-start-level <level> [tmux-new-session-options...]
+
+set -euo pipefail
+
+show_help() {
+    cat << 'EOF'
+tmux-start-level - Start tmux session with level identity
+
+USAGE:
+    tmux-start-level <level> [tmux-options...]
+
+ARGUMENTS:
+    level               Session identity level (1-9)
+    tmux-options       Any flags supported by 'tmux new-session'
+
+EXAMPLES:
+    tmux-start-level 2                          # Basic Level 2 session
+    tmux-start-level 3 -s project               # Named Level 3 session  
+    tmux-start-level 2 -s work -c ~/projects    # Level 2, named, specific directory
+    tmux-start-level 4 -d -s background         # Level 4, detached session
+    tmux-start-level 5 -x 120 -y 40             # Level 5 with specific dimensions
+    tmux-start-level 3 -A -s workspace          # Level 3, attach if exists
+
+NOTES:
+    - Sets TMUX_LEVEL environment variable for session identity
+    - All tmux new-session options are supported and passed through
+    - Sessions started this way can be targeted by multi-level navigation
+    - Use 'tmux-level-help' for navigation commands
+
+SEE ALSO:
+    tmux-goto-level     Switch navigation to specific level
+    tmux-level-help     Show navigation commands
+    tmux new-session    Native tmux session creation
+EOF
+}
+
+# Show help
+if [[ ${1:-} == "--help" || ${1:-} == "-h" ]]; then
+    show_help
+    exit 0
+fi
+
+# Validate arguments
+if [[ $# -eq 0 ]]; then
+    echo "❌ Error: Level argument required"
+    echo ""
+    show_help
+    exit 1
+fi
+
+level=$1
+shift  # Remove level from arguments
+
+# Validate level is 1-9
+if [[ ! $level =~ ^[1-9]$ ]]; then
+    echo "❌ Error: Level must be 1-9, got '$level'"
+    echo ""
+    show_help
+    exit 1
+fi
+
+# Check if tmux is available
+if ! command -v tmux &> /dev/null; then
+    echo "❌ Error: tmux is not installed or not in PATH"
+    exit 1
+fi
+
+# Visual feedback
+echo "🚀 Starting Level $level tmux session..."
+
+# Set environment variable and start tmux with remaining arguments
+TMUX_LEVEL=$level tmux new-session "$@"
