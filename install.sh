@@ -27,12 +27,25 @@ echo "📋 Copying scripts..."
 cp scripts/* ~/.local/bin/tmux-multilevel/
 chmod +x ~/.local/bin/tmux-multilevel/*
 
-# Check if ~/.local/bin is in PATH
+# Check if ~/.local/bin and ~/.local/bin/tmux-multilevel are in PATH
+PATH_WARNING=""
 if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    PATH_WARNING="~/.local/bin"
+fi
+
+if [[ ":$PATH:" != *":$HOME/.local/bin/tmux-multilevel:"* ]]; then
+    if [[ -n "$PATH_WARNING" ]]; then
+        PATH_WARNING="$PATH_WARNING and ~/.local/bin/tmux-multilevel"
+    else
+        PATH_WARNING="~/.local/bin/tmux-multilevel"
+    fi
+fi
+
+if [[ -n "$PATH_WARNING" ]]; then
     echo ""
-    echo "⚠️  ~/.local/bin is not in your PATH"
+    echo "⚠️  $PATH_WARNING not in your PATH"
     echo "   Add this to your ~/.bashrc or ~/.zshrc:"
-    echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo "   export PATH=\"\$HOME/.local/bin/tmux-multilevel:\$HOME/.local/bin:\$PATH\""
     echo ""
 fi
 
@@ -42,6 +55,9 @@ echo "📋 NEXT STEPS:"
 echo "1. 📄 Copy sections from 'tmux.conf.example' to your ~/.tmux.conf"
 echo "2. 🔄 Reload: tmux source-file ~/.tmux.conf"  
 echo "3. 🧪 Test: tmux-level-help"
+echo ""
+echo "🌳 NEW: Try 'worktree-tmux' for git worktree + multilevel tmux magic!"
+echo "   Perfect for parallel development with Claude Code!"
 echo ""
 echo "📖 See README.md for detailed instructions and customization guide"
 echo "🔧 See docs/CUSTOMIZATION.md for adapting to your existing setup"

@@ -13,15 +13,15 @@ USAGE:
     tmux-level-status [FORMAT]
 
 FORMATS:
-    --compact (default)  [session:L2 ✓] or [session:Nav:L2|Session:L1]
-    --full              [session:L2:Ctrl+X ✓] or [session:Nav:L2:Ctrl+X|Session:L1]
-    --minimal           [session:2✓] or [session:2|1]
-    --visual            [session:L2 ✓] [●●○○○○○○○] or [session:Nav:L2|Session:L1] [●●○○○○○○○]
+    --compact (default)  [session:L2 ✓] or [session:L2→L3]
+    --full              [session:L2:Ctrl+X ✓] or [session:L2→L3]
+    --minimal           [session:2✓] or [session:2→3]
+    --visual            [session:L2 ✓] [●●○○○○○○○] or [session:L2→L3] [●●○○○○○○○]
     --help, -h          Show this help
 
 DUAL-STATE DISPLAY:
-    Active:     [session:L2 ✓] - This session matches navigation level (can control tmux)
-    Passthrough: [session:Nav:L2|Session:L1] - Different levels (session in passthrough mode)
+    Active:     [session:L2 ✓] - This session is active (nav level matches)
+    Passthrough: [session:L2→L3] - Session L2, but navigation at L3
 
 EXAMPLES:
     # Use in tmux status bar
@@ -57,14 +57,20 @@ detect_session_level() {
 }
 
 main() {
-    # Get navigation level (which level is active globally)
-    local active_level
-    active_level=$(tmux show-option -gv @active_level 2>/dev/null || echo "1")
-    
     # Get current session level and name
     local session_level session_name
     session_name="${TMUX_SESSION:-$(tmux display-message -p '#S' 2>/dev/null || echo 'default')}"
     session_level=$(detect_session_level "$session_name")
+    
+    # Get the global active navigation level
+    local active_level
+    active_level=$(tmux show-option -gv @active_level 2>/dev/null || echo "1")
+    
+    # Determine if this session is active (levels match)
+    local is_active=false
+    if [[ "$session_level" == "$active_level" ]]; then
+        is_active=true
+    fi
     
     # All levels use Ctrl+X prefix
     local prefix_char="X"
@@ -73,50 +79,44 @@ main() {
     local format_type="${1:-compact}"
     local output=""
     
-    # Determine if session is active (levels match) or passthrough (levels differ)
-    local is_active=false
-    if [[ $active_level -eq $session_level ]]; then
-        is_active=true
-    fi
-    
     case "$format_type" in
         --compact|compact)
             if [[ $is_active == true ]]; then
-                output="[${session_name}:L${active_level} ✓]"
+                output="[${session_name}:L${session_level} ✓]"
             else
-                output="[${session_name}:Nav:L${active_level}|Session:L${session_level}]"
+                output="[${session_name}:L${session_level}→L${active_level}]"
             fi
             ;;
         --full|full)
             if [[ $is_active == true ]]; then
-                output="[${session_name}:L${active_level}:Ctrl+${prefix_char} ✓]"
+                output="[${session_name}:L${session_level}:Ctrl+${prefix_char} ✓]"
             else
-                output="[${session_name}:Nav:L${active_level}:Ctrl+${prefix_char}|Session:L${session_level}]"
+                output="[${session_name}:L${session_level}→L${active_level}]"
             fi
             ;;
         --minimal|minimal)
             if [[ $is_active == true ]]; then
-                output="[${session_name}:${active_level}✓]"
+                output="[${session_name}:${session_level}✓]"
             else
-                output="[${session_name}:${active_level}|${session_level}]"
+                output="[${session_name}:${session_level}→${active_level}]"
             fi
             ;;
         --visual|visual)
-            # Visual dots with level info (9-level system)
+            # Visual dots showing the global active level
             local filled=$(printf "%*s" "$active_level" "" | sed 's/ /●/g')
             local empty=$(printf "%*s" $((9 - active_level)) "" | sed 's/ /○/g')
             if [[ $is_active == true ]]; then
-                output="[${session_name}:L${active_level} ✓] [${filled}${empty}]"
+                output="[${session_name}:L${session_level} ✓] [${filled}${empty}]"
             else
-                output="[${session_name}:Nav:L${active_level}|Session:L${session_level}] [${filled}${empty}]"
+                output="[${session_name}:L${session_level}→L${active_level}] [${filled}${empty}]"
             fi
             ;;
         *)
             # Default to compact
             if [[ $is_active == true ]]; then
-                output="[${session_name}:L${active_level} ✓]"
+                output="[${session_name}:L${session_level} ✓]"
             else
-                output="[${session_name}:Nav:L${active_level}|Session:L${session_level}]"
+                output="[${session_name}:L${session_level}→L${active_level}]"
             fi
             ;;
     esac

@@ -9,20 +9,23 @@ show_help() {
 tmux-start-level - Start tmux session with level identity (9-level system)
 
 USAGE:
-    tmux-start-level <level> [tmux-options...]
+    tmux-start-level [level] [tmux-options...]
 
 ARGUMENTS:
-    level               Session identity level (1-9)
+    level               Session identity level (1-9) - auto-increments if omitted
     tmux-options       Any flags supported by 'tmux new-session'
 
 EXAMPLES:
+    tmux-start-level                            # Auto-select next available level
     tmux-start-level 1                          # Basic Level 1 session
     tmux-start-level 2 -s project               # Named Level 2 session  
     tmux-start-level 3 -s work -c ~/projects    # Level 3, named, specific directory
-    tmux-start-level 2 -d -s background         # Level 2, detached session
+    tmux-start-level -s myproject               # Auto-level with session name
+    tmux-start-level -d -s background           # Auto-level, detached session
     tmux-start-level 1 -A -s workspace          # Level 1, attach if exists
 
 NOTES:
+    - Auto-increment finds the next unused level (1-9)
     - Sets @session_level variable for session identity
     - All tmux new-session options are supported and passed through
     - Sessions start in passthrough mode, use navigation to activate
@@ -41,25 +44,63 @@ if [[ ${1:-} == "--help" || ${1:-} == "-h" ]]; then
     exit 0
 fi
 
-# Validate arguments
+# Function to find next level (simple increment from parent)
+find_next_level() {
+    # First, get the parent session's level if we're inside tmux
+    local parent_level="0"  # Default to L0 if no parent level
+    if [[ -n "${TMUX:-}" ]]; then
+        # We're inside a tmux session, get its level
+        local parent_session
+        parent_session=$(tmux display-message -p '#S' 2>/dev/null || echo '')
+        if [[ -n "$parent_session" ]]; then
+            local detected_level
+            detected_level=$(tmux show-option -t "$parent_session" @session_level 2>/dev/null | cut -d' ' -f2 || echo "")
+            # Only use detected level if it's a valid number 1-9
+            if [[ "$detected_level" =~ ^[1-9]$ ]]; then
+                parent_level="$detected_level"
+            fi
+        fi
+    fi
+    
+    # Simply increment parent level (with wrapping at 9)
+    echo $(( (parent_level % 9) + 1 ))
+}
+
+# Check if first argument is a level number or tmux option
+level=""
 if [[ $# -eq 0 ]]; then
-    echo "❌ Error: Level argument required"
-    echo ""
-    show_help
-    exit 1
+    # No arguments at all, auto-select level
+    level=$(find_next_level)
+    if [[ -n "${TMUX:-}" ]]; then
+        parent_session=$(tmux display-message -p '#S' 2>/dev/null || echo '')
+        parent_level=$(tmux show-option -t "$parent_session" @session_level 2>/dev/null | cut -d' ' -f2 || echo "")
+        if [[ "$parent_level" =~ ^[1-9]$ ]]; then
+            echo "🎯 Auto-selecting Level $level (parent L${parent_level} → L${level})"
+        else
+            echo "🎯 Auto-selecting Level $level (parent L0 → L${level})"
+        fi
+    else
+        echo "🎯 Auto-selecting Level $level (not in tmux → L${level})"
+    fi
+elif [[ "$1" =~ ^[1-9]$ ]]; then
+    # First argument is a level number
+    level=$1
+    shift  # Remove level from arguments
+else
+    # First argument is a tmux option, auto-select level
+    level=$(find_next_level)
+    if [[ -n "${TMUX:-}" ]]; then
+        parent_session=$(tmux display-message -p '#S' 2>/dev/null || echo '')
+        parent_level=$(tmux show-option -t "$parent_session" @session_level 2>/dev/null | cut -d' ' -f2 || echo "")
+        if [[ "$parent_level" =~ ^[1-9]$ ]]; then
+            echo "🎯 Auto-selecting Level $level (parent L${parent_level} → L${level})"
+        else
+            echo "🎯 Auto-selecting Level $level (parent L0 → L${level})"
+        fi
+    else
+        echo "🎯 Auto-selecting Level $level (not in tmux → L${level})"
+    fi
 fi
-
-level=$1
-shift  # Remove level from arguments
-
-# Validate level is 1-9
-case "$level" in
-    [1-9]) ;;
-    *) echo "❌ Error: Level must be 1-9, got '$level'"
-       echo ""
-       show_help
-       exit 1 ;;
-esac
 
 # Check if tmux is available
 if ! command -v tmux &> /dev/null; then
@@ -90,6 +131,6 @@ else
     exec tmux new-session "$@" \; \
         set-option @session_level "$level" \; \
         set-option status-right "#(TMUX_SESSION=#S ~/.local/bin/tmux-multilevel/tmux-level-status --visual) #{?client_prefix,[ACTIVE],} | %l:%M%p" \; \
-        set-option prefix None \; \
+        set-option prefix C-a \; \
         set-option key-table off
 fi

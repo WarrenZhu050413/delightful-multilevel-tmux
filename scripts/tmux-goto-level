@@ -45,13 +45,14 @@ main() {
         exit 1
     fi
     
-    echo "🔄 Navigating to Level $target_level..."
-    
     # Step 1: Update global navigation state
     if ! tmux set-option -g @active_level "$target_level" 2>/dev/null; then
         show_error "Failed to set global active level"
         exit 1
     fi
+    
+    # Display navigation message in tmux status
+    tmux display-message "🔄 Navigating to Level $target_level..." 2>/dev/null || true
     
     # Step 2: Manual re-evaluation of ALL sessions
     local activated_count=0
@@ -70,32 +71,25 @@ main() {
             # ACTIVATE: This session should respond to tmux commands
             if tmux set-option -t "$session_name" prefix C-x 2>/dev/null && \
                tmux set-option -t "$session_name" key-table root 2>/dev/null; then
-                echo "✅ ACTIVATED: $session_name (Level $session_level)"
                 ((activated_count++))
-            else
-                echo "⚠️  Warning: Failed to activate session $session_name"
             fi
         else
-            # PASSTHROUGH: This session should be transparent
-            if tmux set-option -t "$session_name" prefix None 2>/dev/null && \
+            # PASSTHROUGH: This session uses Ctrl-A prefix to avoid conflicts with active sessions
+            if tmux set-option -t "$session_name" prefix C-a 2>/dev/null && \
                tmux set-option -t "$session_name" key-table off 2>/dev/null; then
-                echo "🔀 PASSTHROUGH: $session_name (Level $session_level)"
                 ((passthrough_count++))
-            else
-                echo "⚠️  Warning: Failed to set passthrough for session $session_name"
             fi
         fi
     done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
     
-    # Step 3: Provide feedback
+    # Step 3: Provide feedback via display-message
     if [[ $activated_count -eq 0 ]]; then
-        echo "📝 No Level $target_level sessions found. Create one with: tmux-start-level $target_level"
+        tmux display-message "📝 Level $target_level: No sessions found (use tmux-start-level $target_level)" 2>/dev/null || true
     else
-        echo "🎯 Level $target_level Navigation Active ($activated_count sessions active, $passthrough_count passthrough)"
+        tmux display-message "🎯 Level $target_level Active ($activated_count active, $passthrough_count passthrough)" 2>/dev/null || true
     fi
     
-    # Step 4: Visual confirmation and refresh
-    tmux display-message "Level $target_level Active ($activated_count sessions)" 2>/dev/null || true
+    # Step 4: Refresh status bar
     tmux refresh-client -S 2>/dev/null || true
     
     # Step 5: Save state for persistence
