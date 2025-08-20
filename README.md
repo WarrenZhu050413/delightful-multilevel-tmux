@@ -36,6 +36,10 @@ j
 
 ## 🎬 Quick Demo
 
+**Video Demonstration:**
+
+https://github.com/WarrenZhu050413/delightful-multilevel-tmux/assets/71219757/DMT_Demo_LQ.mp4
+
 **Session-Aware Status Display (Latest):**
 ```
 Active:     [myproject:L3 ✓] [●●●○○○○○○] | 2:34pm     (mint green)
