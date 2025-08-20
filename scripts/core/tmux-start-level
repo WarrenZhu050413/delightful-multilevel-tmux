@@ -4,6 +4,16 @@
 
 set -euo pipefail
 
+# Source configuration
+CONFIG_FILE="$HOME/.local/bin/tmux-multilevel/config.sh"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    # Fallback to defaults if config doesn't exist
+    PRIMARY_PREFIX="C-x"
+    SECONDARY_PREFIX="C-a"
+fi
+
 show_help() {
     cat << 'EOF'
 tmux-start-level - Start tmux session with level identity (9-level system)
@@ -29,7 +39,7 @@ NOTES:
     - Sets @session_level variable for session identity
     - All tmux new-session options are supported and passed through
     - Sessions start in passthrough mode, use navigation to activate
-    - Use Ctrl+X !@#$%^&*( to navigate to levels 1-9
+    - Use configured prefix (!@#$%^&*() to navigate to levels 1-9
 
 SEE ALSO:
     tmux-goto-level     Switch navigation to specific level
@@ -125,12 +135,12 @@ if [[ $level -eq $current_active_level ]]; then
     exec tmux new-session "$@" \; \
         set-option @session_level "$level" \; \
         set-option status-right "#(TMUX_SESSION=#S ~/.local/bin/tmux-multilevel/tmux-level-status --visual) #{?client_prefix,[ACTIVE],} | %l:%M%p" \; \
-        set-option prefix C-x \; \
+        set-option prefix $PRIMARY_PREFIX \; \
         set-option key-table root
 else
     exec tmux new-session "$@" \; \
         set-option @session_level "$level" \; \
         set-option status-right "#(TMUX_SESSION=#S ~/.local/bin/tmux-multilevel/tmux-level-status --visual) #{?client_prefix,[ACTIVE],} | %l:%M%p" \; \
-        set-option prefix C-a \; \
+        set-option prefix $SECONDARY_PREFIX \; \
         set-option key-table off
 fi

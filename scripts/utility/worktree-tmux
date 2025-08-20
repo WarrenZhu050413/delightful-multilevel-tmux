@@ -8,6 +8,16 @@
 
 set -euo pipefail
 
+# Source configuration
+CONFIG_FILE="$HOME/.local/bin/tmux-multilevel/config.sh"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    # Fallback to defaults if config doesn't exist
+    PRIMARY_PREFIX="C-x"
+    SECONDARY_PREFIX="C-a"
+fi
+
 show_help() {
     cat << 'EOF'
 worktree-tmux - Create 4 git worktrees in a 2x2 tmux session with multilevel support
@@ -44,7 +54,7 @@ MULTILEVEL TMUX:
     • Level auto-detection:
       - Inside tmux: next level from current
       - Outside tmux: Level 1
-    • Navigate levels with Ctrl+X then !@#$%^&*( for levels 1-9
+    • Navigate levels with configured prefix then !@#$%^&*( for levels 1-9
     • Each level maintains independent session state
 
 NOTES:
@@ -168,16 +178,16 @@ if [[ -n "${TMUX:-}" ]]; then
     current_active_level=$(tmux show-option @session_level 2>/dev/null | cut -d' ' -f2 || echo "1")
     if [[ "$new_level" == "$current_active_level" ]]; then
         # Active mode
-        tmux set-option -t "$session_name" prefix C-x
+        tmux set-option -t "$session_name" prefix $PRIMARY_PREFIX
         tmux set-option -t "$session_name" key-table root
     else
-        # Passive mode - use Ctrl-A to avoid conflicts with active sessions
-        tmux set-option -t "$session_name" prefix C-a
+        # Passive mode - use secondary prefix to avoid conflicts with active sessions
+        tmux set-option -t "$session_name" prefix $SECONDARY_PREFIX
         tmux set-option -t "$session_name" key-table off
     fi
 else
     # If not in tmux, set as active
-    tmux set-option -t "$session_name" prefix C-x
+    tmux set-option -t "$session_name" prefix $PRIMARY_PREFIX
     tmux set-option -t "$session_name" key-table root
 fi
 

@@ -67,19 +67,24 @@ cd delightful-multilevel-tmux
 ./install.sh
 ```
 
-That's it! DMT is now installed with Ctrl+X as the prefix.
+During installation, you'll be prompted to choose your prefix keys:
+- **Primary prefix**: Used for active sessions (default: C-x)
+- **Secondary prefix**: Used for passthrough sessions (default: C-a)
+
+The installer will generate a customized `tmux.conf.generated` file with your chosen prefixes.
 
 ## 🚀 Quick Start
 
 ### Navigate 9 Levels
+Using your configured primary prefix (default: Ctrl+X):
 ```bash
-Ctrl+X !  → Level 1        Ctrl+X ^  → Level 6
-Ctrl+X @  → Level 2        Ctrl+X &  → Level 7
-Ctrl+X #  → Level 3        Ctrl+X *  → Level 8
-Ctrl+X $  → Level 4        Ctrl+X (  → Level 9
-Ctrl+X %  → Level 5
+<prefix> !  → Level 1        <prefix> ^  → Level 6
+<prefix> @  → Level 2        <prefix> &  → Level 7
+<prefix> #  → Level 3        <prefix> *  → Level 8
+<prefix> $  → Level 4        <prefix> (  → Level 9
+<prefix> %  → Level 5
 
-Ctrl+V    → Next level     Ctrl+B    → Previous level
+Ctrl+V      → Next level     Ctrl+B      → Previous level
 ```
 
 ### Create Level-Aware Sessions
@@ -97,7 +102,7 @@ Perfect for parallel development with AI assistants!
 ## 📖 Documentation
 
 - **[Usage Guide](docs/USAGE.md)** - Complete navigation and commands
-- **[Customization](docs/CUSTOMIZATION.md)** - Make it yours
+- **[Customization](docs/CUSTOMIZATION.md)** - Make it yours, including prefix configuration
 - **[Worktree Integration](docs/WORKTREE.md)** - Git worktree workflows
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Quick fixes
 - **[Implementation](docs/IMPLEMENTATION.md)** - Technical details
@@ -106,11 +111,28 @@ Perfect for parallel development with AI assistants!
 
 ## 🎯 Key Features
 
+- **Configurable Prefix Keys**: Choose your own prefix keys during installation
 - **9-Level Navigation**: Seamlessly navigate nested tmux sessions
 - **Smart Status Display**: Always know where you are
 - **Session Isolation**: Each level operates independently
 - **Git Worktree Integration**: 4 parallel workspaces in one command
 - **Zero Dependencies**: Pure tmux and bash
+
+## ⚙️ Configuration
+
+### Changing Prefix Keys
+To reconfigure your prefix keys after installation:
+
+1. Edit `~/.local/bin/tmux-multilevel/config.sh`
+2. Re-run `./install.sh` to regenerate `tmux.conf.generated`
+3. Copy the new config: `cp tmux.conf.generated ~/.tmux.conf`
+4. Reload tmux: `tmux source-file ~/.tmux.conf`
+
+### Script Organization
+- **Core scripts**: `~/.local/bin/tmux-multilevel/core/`
+  - Essential multilevel navigation scripts
+- **Utility scripts**: `~/.local/bin/tmux-multilevel/utility/`
+  - Optional tools like `worktree-tmux`
 
 ## 🛠 Requirements
 

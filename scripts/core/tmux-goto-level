@@ -4,6 +4,16 @@
 
 set -euo pipefail
 
+# Source configuration
+CONFIG_FILE="$HOME/.local/bin/tmux-multilevel/config.sh"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    # Fallback to defaults if config doesn't exist
+    PRIMARY_PREFIX="C-x"
+    SECONDARY_PREFIX="C-a"
+fi
+
 show_error() {
     echo "❌ $1" >&2
     # Clear any status styling
@@ -69,13 +79,13 @@ main() {
         
         if [[ $session_level -eq $target_level ]]; then
             # ACTIVATE: This session should respond to tmux commands
-            if tmux set-option -t "$session_name" prefix C-x 2>/dev/null && \
+            if tmux set-option -t "$session_name" prefix $PRIMARY_PREFIX 2>/dev/null && \
                tmux set-option -t "$session_name" key-table root 2>/dev/null; then
                 ((activated_count++))
             fi
         else
-            # PASSTHROUGH: This session uses Ctrl-A prefix to avoid conflicts with active sessions
-            if tmux set-option -t "$session_name" prefix C-a 2>/dev/null && \
+            # PASSTHROUGH: This session uses secondary prefix to avoid conflicts with active sessions
+            if tmux set-option -t "$session_name" prefix $SECONDARY_PREFIX 2>/dev/null && \
                tmux set-option -t "$session_name" key-table off 2>/dev/null; then
                 ((passthrough_count++))
             fi
