@@ -1,32 +1,38 @@
-# 🚀 Delightful Multilevel Tmux
+# Delightful Multilevel Tmux (DMT)
 
-## Hi! Welcome to delightful multi-level tmux 👋
+## Hi! Welcome to DMT :)
 
-This has been a labor of love to create the tmux that I always wanted. I hope you enjoy it too :)
+This has been a labor of love to create the tmux that I always wanted. I hope you enjoy it too :). 
 
-## *"One tmux to rule them all"*
+## Why I created this
 
-> *I love Tmux. I love splitting panes and creating new sessions. But I find that I often need nested tmux so that I can let my tmux sessions reflect how my mind works. I like zooming in and out using `<prefix> z` in tmux. But I find that I often want to zoom into another nested session. For example, I want a session where I both have A) a claude code session open, and B) a vim session that looks at various files. Hence, delightful-multi-level-tmux was born!*
->
-> *I tried different ways of implementing this. Went into some bugs when I tried to make everything automatic. And figured that the easiest way is to let the user personally set the tmux levels with `tmux-start-level {num: int}`. I am sorry if this gives additional work for you! (tab autocomplete should make this less of a slog as it seems. You can also create your own alias to quickly start your new tmux session).*
->
-> *I really hope that using this can be delightful, and unlock a new dimension of tmux that you have not considered before :). At least for me, this brings a lot of joy and happiness to my life. :)*
+I love Tmux. I love splitting panes and creating new sessions. But I find that I often need nested tmux so that I can let my tmux sessions reflect how my mind works. I like zooming in and out using `<prefix> z` in tmux. But I find that I often want to zoom into another nested session. For example, I want a session where I both have A) a claude code session open, and B) a vim session that looks at various files. Hence, delightful-multi-level-tmux was born!
 
-Born from a love of **mental model mapping** and **nested thinking**, this is a sophisticated **9-level navigation system** for tmux that transforms how you navigate nested environments. Perfect for developers who think in layers, need multiple contexts, and want their tools to match their cognitive flow.
+I really hope that using this can be fun and joyful, that it could unlock a new dimension of tmux that you have not considered before. It did at least for me!
 
-## ✨ Why You'll Love This
+## Implementation
 
-- **🌳 Think in Branches**: Create workspace hierarchies that match your thought process
-- **⚡ Friction-Free Exploration**: Jump between contexts instantly - no mental overhead
-- **🎯 Visual Wayfinding**: `[L3:X ●●●○○○○○○]` shows exactly where you are in your exploration
-- **🔀 Dual Prefix System**: Active sessions use `Ctrl+X`, inactive use `Ctrl+A` (no conflicts!)
-- **🚀 Perfect for Claude Code**: Seamlessly branch while coding with AI assistance
-- **⌨️ Muscle Memory Friendly**: `Ctrl+X !@#$` - symbols in order, easy to remember
-- **🔄 Flow State Navigation**: `Ctrl+V` (deeper) / `Ctrl+B` (back up) for natural movement
-- **🆘 Never Get Lost**: Multiple escape routes - you can always find your way home
-- **💾 Persistent Adventures**: Remembers where you were, even after tmux restarts
-- **🌈 Depth Awareness**: Color coding warns when you're going deep (good for focus!)
-- **🛠️ Yours to Shape**: Customize any key with simple find-and-replace
+There are many ways of implementing this. I ended up settling on using tmux options + tmux key tables for its simplicity. We have two key tables: The `root` key table and the `off` key table, and two option states: the global @active_state, and the session-local @session_state. 
+
+@active_state is changed by the script `tmux-goto-level {level: int}`. @session_state is set at creation by the script `tmux_start_level {level:int}`.
+
+Whenever tmux-goto-level changes @active_state, it also scans through all current sessions to see whether @active_state equals @session_state. If there is a match, then it assigns it to the root key-table and sets its prefix to C-x. Else, their prefix is set to C-a. This enables tmux prefixes addressed to an active session to pass through the inactive sessions!
+
+The key logic is in [tmux-goto-level](https://github.com/WarrenZhu050413/delightful-multilevel-tmux/blob/main/scripts/tmux-goto-level):
+
+```bash
+    # Process each session
+    while IFS= read -r session_name; do
+        # Skip if session_name is empty
+        [[ -n "$session_name" ]] || continue
+        
+        # Get this session's level identity
+        local session_level
+        session_level=$(detect_session_level "$session_name")
+        
+j
+    done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
+```
 
 ## 🎬 Quick Demo
 
@@ -36,15 +42,6 @@ Active:     [myproject:L3 ✓] [●●●○○○○○○] | 2:34pm     (mint 
 Passthrough: [myproject:L2→L3] [●●●○○○○○○] | 2:34pm   (soft blue)
 Deep Active: [work:L8 ✓] [●●●●●●●●○] | 2:34pm         (sage green)
 ```
-- Shows session name and its level
-- Active sessions show ✓, passthrough shows navigation arrow (L2→L3)
-- Status bar updates only when THIS session's state changes (not globally)
-
-**Perfect Nested Sessions & 9-Level Support (v2.0.0):**
-- `tmux-start-level` now creates true hierarchical nesting
-- Extended from 3 levels to full 9-level navigation
-- Each session contains the next level naturally
-- No more client switching - proper session containment
 
 **Workflow Example:**
 ```bash
@@ -70,64 +67,9 @@ cd delightful-multilevel-tmux
 ./install.sh
 ```
 
-**That's it!** Most of the information in this README is for reference - what you need to know is:
+My tmux prefix is Ctrl-x. You may have to modify it slightly for yourself if you use another prefix.
 
-1. **Start a tmux session** normally
-2. **Start a nested session** with `tmux-start-level` (e.g., `tmux-start-level 2`)
-3. **Navigate between levels** with `Ctrl+X Shift+{number}` (when at global level) or `Ctrl+A Shift+{number}` (when at a nested level)
-
-Hope you enjoy this as much as I do! 🎉
-
-## 📋 Setup Steps
-
-1. **Install scripts** (done by install.sh):
-   ```bash
-   # Scripts are installed to ~/.local/bin/tmux-multilevel/
-   ```
-
-2. **Add to your tmux config**:
-   
-   Copy the multilevel section from `tmux.conf.example` to your `~/.tmux.conf`:
-   
-   ```bash
-   # Copy everything between these markers:
-   # ============================================================================
-   # BEGIN MULTILEVEL NAVIGATION - COPY THIS SECTION TO YOUR ~/.tmux.conf  
-   # ============================================================================
-   # [paste here]
-   # ============================================================================
-   # END MULTILEVEL NAVIGATION
-   # ============================================================================
-   ```
-
-3. **Reload tmux**:
-   ```bash
-   tmux source-file ~/.tmux.conf
-   ```
-
-4. **Test the new workflow**:
-   ```bash
-   # Test helper script
-   tmux-start-level --help
-   
-   # Test navigation
-   tmux-level-help
-   
-   # Test status display
-   tmux-level-status --visual
-   ```
-
-## 🔀 Dual Prefix System (NEW!)
-
-**No more nested tmux conflicts!** Active and inactive sessions now use different prefixes:
-
-- **Active sessions** (matching your navigation level): Use `Ctrl+X` prefix
-- **Inactive/passthrough sessions**: Use `Ctrl+A` prefix
-
-This means when you're in a Level 3 session inside a Level 2 session:
-- Level 3 (active): `Ctrl+X v` splits the window in Level 3
-- Level 2 (inactive): `Ctrl+A v` would split in Level 2 (if needed)
-- No more commands getting intercepted by the wrong session!
+Hope you enjoy this as much as I do!
 
 ## 🌳 Git Worktree Integration (NEW!)
 
@@ -166,56 +108,7 @@ worktree-tmux experiment         # Named "experiment", auto level (current + 1)
 worktree-tmux frontend 5         # Named "frontend", explicit Level 5
 ```
 
-### Perfect Claude Code Workflow
 
-1. **Start your main work** at Level 2
-2. **Need to explore an idea?** Run `worktree-tmux experiment`
-3. **Automatically get** Level 3 session with 4 isolated branches
-4. **Ask Claude** to try different approaches in each worktree
-5. **Compare results** side-by-side in the 2x2 layout
-6. **Cherry-pick the best** solution back to your main branch
-
-### How It Respects Multilevel Navigation
-
-- **Smart Level Detection**: Reads your current tmux level
-- **Automatic Increment**: New session is always `current_level + 1`
-- **No Manual Setup**: Unlike `tmux-start-level`, no level parameter needed
-- **Proper Nesting**: Maintains the hierarchical tmux structure
-- **Navigation Ready**: Use `Ctrl+X` shortcuts to jump between levels
-
-## 🎯 New Workflow
-
-### **1. Start Sessions with Level Identity**
-```bash
-# Auto-increment from parent (NEW!)
-tmux-start-level                            # Auto-selects next level (parent + 1)
-tmux-start-level -s project                 # Auto-level with session name
-
-# Manual level selection
-tmux-start-level 2                          # Basic Level 2 session
-tmux-start-level 3 -s project               # Named Level 3 session  
-tmux-start-level 2 -s work -c ~/projects    # Level 2, named, specific directory
-tmux-start-level 4 -d -s background         # Level 4, detached session
-tmux-start-level 9 -s deep                  # Level 9, deepest session
-```
-
-**Auto-increment logic:**
-- From session with no level (L0) → Creates L1
-- From L1 session → Creates L2
-- From L9 session → Creates L1 (wraps around)
-
-### **2. Navigate to Target Level**
-```bash
-Ctrl+X !    # Activate Level 1 (outermost)
-Ctrl+X @    # Activate Level 2
-Ctrl+X #    # Activate Level 3
-Ctrl+X $    # Activate Level 4
-Ctrl+X %    # Activate Level 5
-Ctrl+X ^    # Activate Level 6
-Ctrl+X &    # Activate Level 7
-Ctrl+X *    # Activate Level 8
-Ctrl+X (    # Activate Level 9 (deepest)
-```
 
 ### **3. Understand Session States**
 - **Active**: `[Level:L3 ✓]` - Your session controls tmux (create panes, windows, etc.)
