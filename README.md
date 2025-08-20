@@ -38,7 +38,7 @@ j
 
 **Video Demonstration:**
 
-https://github.com/WarrenZhu050413/delightful-multilevel-tmux/assets/71219757/DMT_Demo_LQ.mp4
+[Download Demo Video (MP4)](https://github.com/WarrenZhu050413/delightful-multilevel-tmux/blob/main/DMT_Demo_LQ.mp4?raw=true)
 
 **Session-Aware Status Display (Latest):**
 ```
