@@ -2,7 +2,7 @@
 
 ## Hi! Welcome to DMT :)
 
-This has been a labor of love to create the tmux that I always wanted. I hope you enjoy it too :). 
+This has been a labor of love to create the tmux that I always wanted. I hope you enjoy it too :).
 
 ## Why I created this
 
@@ -12,7 +12,7 @@ I really hope that using this can be fun and joyful, that it could unlock a new 
 
 ## Implementation
 
-There are many ways of implementing this. I ended up settling on using tmux options + tmux key tables for its simplicity. We have two key tables: The `root` key table and the `off` key table, and two option states: the global @active_state, and the session-local @session_state. 
+There are many ways of implementing this. I ended up settling on using tmux options + tmux key tables for its simplicity. We have two key tables: The `root` key table and the `off` key table, and two option states: the global @active_state, and the session-local @session_state.
 
 @active_state is changed by the script `tmux-goto-level {level: int}`. @session_state is set at creation by the script `tmux_start_level {level:int}`.
 
@@ -30,297 +30,104 @@ The key logic is in [tmux-goto-level](https://github.com/WarrenZhu050413/delight
         local session_level
         session_level=$(detect_session_level "$session_name")
         
-j
+        if [[ $session_level -eq $target_level ]]; then
+            # ACTIVATE: This session should respond to tmux commands
+            if tmux set-option -t "$session_name" prefix C-x 2>/dev/null && \
+               tmux set-option -t "$session_name" key-table root 2>/dev/null; then
+                ((activated_count++))
+            fi
+        else
+            # PASSTHROUGH: This session uses Ctrl-A prefix to avoid conflicts
+            if tmux set-option -t "$session_name" prefix C-a 2>/dev/null && \
+               tmux set-option -t "$session_name" key-table off 2>/dev/null; then
+                ((passthrough_count++))
+            fi
+        fi
     done < <(tmux list-sessions -F '#S' 2>/dev/null || true)
 ```
 
 ## 🎬 Quick Demo
 
-**Video Demonstration:**
+**Video**: [Watch DMT in Action](https://github.com/WarrenZhu050413/delightful-multilevel-tmux/blob/main/media/DMT_Demo_LQ.mp4?raw=true)
 
-[Download Demo Video (MP4)](https://github.com/WarrenZhu050413/delightful-multilevel-tmux/blob/main/DMT_Demo_LQ.mp4?raw=true)
+![DMT Nested Sessions](media/DMT_Nest.png)
 
-**Session-Aware Status Display (Latest):**
+**Visual Status**:
 ```
-Active:     [myproject:L3 ✓] [●●●○○○○○○] | 2:34pm     (mint green)
-Passthrough: [myproject:L2→L3] [●●●○○○○○○] | 2:34pm   (soft blue)
-Deep Active: [work:L8 ✓] [●●●●●●●●○] | 2:34pm         (sage green)
-```
-
-**Workflow Example:**
-```bash
-# 1. Start Level 2 session
-tmux-start-level 2 -s project
-
-# 2. Navigate to Level 2 (activates this session)
-Ctrl+X @  → [Level:L2 ✓] [●●○○○○○○○]
-
-# 3. Create panes normally (works because levels match)
-Ctrl+X v  → split-window works!
-Ctrl+X s  → split-window works!
-
-# 4. Navigate to Level 3 (this session becomes passthrough) 
-Ctrl+X #  → [Nav:L3|Session:L2] [●●●○○○○○○]
+Active:      [myproject:L3 ✓] [●●●○○○○○○] | 2:34pm
+Passthrough: [backend:L2→L3] [●●●○○○○○○] | 2:34pm  
+Deep:        [prod:L8 ✓] [●●●●●●●●○] | 2:34pm
 ```
 
-## ⚡ Quick Installation
+## ⚡ Installation
 
 ```bash
-git clone https://github.com/[username]/delightful-multilevel-tmux.git
+git clone https://github.com/WarrenZhu050413/delightful-multilevel-tmux.git
 cd delightful-multilevel-tmux
 ./install.sh
 ```
 
-My tmux prefix is Ctrl-x. You may have to modify it slightly for yourself if you use another prefix.
+That's it! DMT is now installed with Ctrl+X as the prefix.
 
-Hope you enjoy this as much as I do!
+## 🚀 Quick Start
 
-## 🌳 Git Worktree Integration (NEW!)
-
-**Introducing `worktree-tmux`** - A powerful companion command that creates 4 git worktrees in a 2x2 tmux layout, perfect for parallel development with Claude Code!
-
-### Why This Is Amazing
-
-- **🤖 Claude Code Synergy**: Perfect for AI-assisted parallel experimentation
-- **🎯 Automatic Level Management**: Intelligently creates sessions at `current_level + 1`
-- **🌲 Branch Isolation**: Each worktree gets its own branch for safe exploration
-- **📐 2x2 Visual Layout**: Four workspaces that match how you think
-- **🏷️ Namespace Organization**: Group related experiments with meaningful names
-
-### Quick Example
-
+### Navigate 9 Levels
 ```bash
-# Inside a Level 3 tmux session, working on a feature
-worktree-tmux backend       # Creates Level 4 session with 4 backend worktrees
+Ctrl+X !  → Level 1        Ctrl+X ^  → Level 6
+Ctrl+X @  → Level 2        Ctrl+X &  → Level 7
+Ctrl+X #  → Level 3        Ctrl+X *  → Level 8
+Ctrl+X $  → Level 4        Ctrl+X (  → Level 9
+Ctrl+X %  → Level 5
 
-# The result: A 2x2 grid at Level 4
-┌─────────────────────┬─────────────────────┐
-│ backend-1 (branch)  │ backend-2 (branch)  │
-├─────────────────────┼─────────────────────┤
-│ backend-3 (branch)  │ backend-4 (branch)  │
-└─────────────────────┴─────────────────────┘
+Ctrl+V    → Next level     Ctrl+B    → Previous level
 ```
 
-### Usage
-
+### Create Level-Aware Sessions
 ```bash
-worktree-tmux [namespace] [level]
-
-# Examples:
-worktree-tmux                    # Auto-named with timestamp, auto level
-worktree-tmux experiment         # Named "experiment", auto level (current + 1)
-worktree-tmux frontend 5         # Named "frontend", explicit Level 5
+tmux-start-level 2 -s backend   # Start at Level 2
+tmux-start-level 3 -s frontend  # Start at Level 3
 ```
 
-
-
-### **3. Understand Session States**
-- **Active**: `[Level:L3 ✓]` - Your session controls tmux (create panes, windows, etc.)
-- **Passthrough**: `[Nav:L3|Session:L2]` - Your session is transparent (commands pass through)
-
-### **4. Sequential Navigation**
+### Git Worktree Magic (NEW!)
 ```bash
-Ctrl+V      # Go down one level (1→2→3...→9→1...)
-Ctrl+B      # Go up one level (9→8→7...→1→9...)
+worktree-tmux experiment   # Creates 4 worktrees in 2x2 layout
 ```
+Perfect for parallel development with AI assistants!
 
-### **5. Status Bar Formats**
-```bash
-tmux-level-status --visual   # [Level:L3 ✓] [●●●○○○○○○] (default)
-tmux-level-status --compact  # [Level:L3 ✓] or [Nav:L3|Session:L2]
-tmux-level-status --full     # [Level:L3:Ctrl+X ✓] or [Nav:L3:Ctrl+X|Session:L2]
-tmux-level-status --minimal  # [3✓] or [3|2]
-```
+## 📖 Documentation
 
-### **6. Help Commands**
-```bash
-tmux-start-level --help      # Show session creation options
-tmux-level-help              # Show navigation help for current level
-tmux-level-status --help     # Show status format options  
-tmux-level-reset            # Emergency reset to Level 1
-```
+- **[Usage Guide](docs/USAGE.md)** - Complete navigation and commands
+- **[Customization](docs/CUSTOMIZATION.md)** - Make it yours
+- **[Worktree Integration](docs/WORKTREE.md)** - Git worktree workflows
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Quick fixes
+- **[Implementation](docs/IMPLEMENTATION.md)** - Technical details
+- **[Reference](docs/REFERENCE.md)** - All commands and options
+- **[Changelog](docs/CHANGELOG.md)** - Version history
 
-## 🛠️ Common Customizations
+## 🎯 Key Features
 
-Want different key bindings? Just change a few characters:
+- **9-Level Navigation**: Seamlessly navigate nested tmux sessions
+- **Smart Status Display**: Always know where you are
+- **Session Isolation**: Each level operates independently
+- **Git Worktree Integration**: 4 parallel workspaces in one command
+- **Zero Dependencies**: Pure tmux and bash
 
-### Change Main Prefix (Ctrl+X → Ctrl+A)
-```bash
-# Find these lines in your ~/.tmux.conf:
-unbind C-x
-set -g prefix C-x
-bind C-x send-prefix
+## 🛠 Requirements
 
-# Change to:
-unbind C-a
-set -g prefix C-a  
-bind C-a send-prefix
-```
-
-### Change Navigation Keys (Ctrl+V/B → Ctrl+J/K)
-```bash
-# Find these lines:
-bind -T root C-v run-shell '~/.local/bin/tmux-multilevel/tmux-level-down'
-bind -T root C-b run-shell '~/.local/bin/tmux-multilevel/tmux-level-up'
-
-# Change to:
-bind -T root C-j run-shell '~/.local/bin/tmux-multilevel/tmux-level-down'
-bind -T root C-k run-shell '~/.local/bin/tmux-multilevel/tmux-level-up'
-```
-
-### Change Jump Symbols (!@# → 123)
-```bash
-# Find these lines:
-bind ! run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 1'
-bind @ run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 2'
-
-# Change to:
-bind 1 run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 1'  
-bind 2 run-shell '~/.local/bin/tmux-multilevel/tmux-goto-level 2'
-```
-
-**That's it!** See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for more detailed customization examples.
-
-## 📖 How It Works
-
-This system uses **tmux key-tables** to create isolated navigation environments for each level:
-
-- **Level 1**: Uses `root` key-table (your normal tmux)
-- **Levels 2-9**: Each gets its own key-table (`level2`, `level3`, etc.)
-- **State tracking**: Current level stored in tmux variables + filesystem
-- **Visual feedback**: Status bar shows level + progress dots with color coding
-
-## 🎛️ Available Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `tmux-goto-level` | Switch to specific level (1-9) |
-| `tmux-level-up` | Move up one level with boundary handling |
-| `tmux-level-down` | Move down one level with boundary handling |
-| `tmux-level-status` | Format status bar indicator (4 formats) |
-| `tmux-level-reset` | Emergency reset to Level 1 |
-| `tmux-level-help` | Show navigation commands for current level |
-| `tmux-add-level-bindings` | Apply key bindings to specific level (internal) |
-| `worktree-tmux` | Create 4 git worktrees in 2x2 tmux layout at next level |
-
-## 🔧 Requirements
-
-- **tmux 2.1+** (for advanced key-table support)
-- **bash** (for scripts)
-- **~/.local/bin in PATH** (automatic check during installation)
-
-## 🆕 What's New in v2.0.0
-
-### 🎯 Extended to 9-Level System
-- **Enhancement**: Expanded from 3-level to full 9-level navigation support
-- **Architecture**: All scripts now support levels 1-9 with proper validation  
-- **Keybindings**: Added Ctrl+X $%^&*( for levels 4-9
-- **Sequential Navigation**: Improved wrapping with mathematical formulas instead of hardcoded cases
-- **Visual Status**: Status bar dots now show all 9 levels (●●●●●○○○○)
-
-### 🧮 Mathematical Navigation Logic
-- **tmux-level-down**: `(current % 9) + 1` for 1→2→3...→9→1 wrapping
-- **tmux-level-up**: `((current-2+9) % 9) + 1` for 9→8→7...→1→9 wrapping
-- **Result**: Seamless navigation through all 9 levels without edge cases
-
-## 🎉 What's New in v1.1.0
-
-### 🎯 Session-Specific Status Lines
-- **Problem**: Multiple sessions shared global status, showed wrong names on restart
-- **Solution**: Each session now has its own status line with correct session name
-- **Benefit**: `[coupling:L2 ✓]` vs `[tmux:L1 ✓]` - always shows the right context
-
-### 🌳 True Nested Sessions  
-- **Problem**: `tmux-start-level` switched clients instead of creating hierarchy
-- **Solution**: Now creates proper nested sessions within current tmux context
-- **Benefit**: True containment - Level 2 lives inside Level 1, Level 3 inside Level 2
-
-### 🔧 Simplified Architecture
-- **Removed**: Complex detached session logic, kill/switch client code  
-- **Added**: Direct `tmux new-session` with command chaining
-- **Result**: More reliable, fewer edge cases, cleaner code
-
-### 🐛 Bug Fixes
-- Fixed: Sessions exiting immediately when created inside tmux
-- Fixed: Status lines showing wrong session names after restart
-- Fixed: Client switching breaking session hierarchy
-
-## 📁 File Locations
-
-```
-~/.local/bin/tmux-multilevel/     # All navigation scripts
-~/.tmux_level_state              # Persistent level state (auto-created)
-~/.tmux.conf                     # Your tmux config (you edit this)
-```
-
-## 🚨 Troubleshooting
-
-### Can't Escape from Deep Levels
-```bash
-# Emergency escape options:
-Ctrl+X !                         # Jump to Level 1
-tmux-level-reset                 # Command line reset
-tmux-level-help                  # Show escape commands
-```
-
-### Scripts Not Found
-```bash
-# Check if ~/.local/bin is in PATH:
-echo $PATH | grep "$HOME/.local/bin"
-
-# If not, add to ~/.bashrc or ~/.zshrc:
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-### Key Bindings Conflict
-```bash
-# Check existing bindings:
-tmux list-keys | grep "your-key"
-
-# See CUSTOMIZATION.md for conflict resolution
-```
-
-### Status Bar Not Updating
-```bash
-# Check status interval:
-tmux show-options -g status-interval
-
-# Test status script directly:  
-tmux-level-status --visual
-
-# Test session-specific status:
-TMUX_SESSION=mysession tmux-level-status --compact
-```
-
-### Nested Sessions Not Working (v1.1.0+)
-```bash
-# Verify session hierarchy:
-tmux list-sessions
-
-# Check if session has proper level set:
-tmux show-option -t session_name @session_level
-
-# Test nested creation manually:
-tmux new-session -s test \; set-option @session_level "2"
-```
+- tmux 2.1+
+- bash
+- `~/.local/bin` in PATH
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Test your changes with the provided `tmux.conf.example`
-4. Submit a pull request
+PRs welcome! See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for architecture details.
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) file.
-
-## 🙏 Acknowledgments
-
-Inspired by the need for sophisticated tmux navigation in complex SSH environments and multi-level development workflows.
+MIT - See [LICENSE](LICENSE)
 
 ---
 
 **Made with ❤️ for tmux power users**
 
-*Need help? Open an issue or check the [troubleshooting guide](docs/CUSTOMIZATION.md#troubleshooting).*
+*Quick help: Run `tmux-level-help` | Report issues: [GitHub](https://github.com/WarrenZhu050413/delightful-multilevel-tmux/issues)*
