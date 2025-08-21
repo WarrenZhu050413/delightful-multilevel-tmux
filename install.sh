@@ -111,16 +111,17 @@ echo "📋 Copying utility scripts..."
 cp scripts/utility/* ~/.local/bin/tmux-multilevel/utility/
 chmod +x ~/.local/bin/tmux-multilevel/utility/*
 
-# Create symlinks in main directory for backward compatibility
-echo "🔗 Creating compatibility symlinks..."
-for script in ~/.local/bin/tmux-multilevel/core/*; do
+# Create symlinks for all scripts
+echo "🔗 Creating symlinks for direct access..."
+for script in ~/.local/bin/tmux-multilevel/{core,utility}/*; do
+    [ -f "$script" ] || continue
     basename=$(basename "$script")
-    ln -sf "core/$basename" ~/.local/bin/tmux-multilevel/"$basename"
-done
-
-for script in ~/.local/bin/tmux-multilevel/utility/*; do
-    basename=$(basename "$script")
-    ln -sf "utility/$basename" ~/.local/bin/tmux-multilevel/"$basename"
+    # Get relative path from tmux-multilevel directory
+    relpath=${script#~/.local/bin/tmux-multilevel/}
+    # Symlink in tmux-multilevel main directory (backward compatibility)
+    ln -sf "$relpath" ~/.local/bin/tmux-multilevel/"$basename"
+    # Symlink in ~/.local/bin for direct access
+    ln -sf "tmux-multilevel/$relpath" ~/.local/bin/"$basename"
 done
 
 # Generate tmux.conf with user's chosen prefixes
@@ -401,6 +402,10 @@ echo "   Secondary prefix: $secondary_prefix (passthrough)"
 echo ""
 echo "🌳 NEW: Try 'worktree-tmux' for git worktree + multilevel tmux magic!"
 echo "   Perfect for parallel development with Claude Code!"
+echo ""
+echo "🔨 UTILITY TOOLS: Use --help to learn about optional tools like:"
+echo "   • worktree-tmux - Git worktree management"
+echo "   • claude-resume - Resume Claude sessions easily"
 echo ""
 echo "📖 See README.md for detailed instructions"
 echo "🔧 To change prefixes later, edit ~/.local/bin/tmux-multilevel/config.sh"

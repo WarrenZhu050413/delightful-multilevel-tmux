@@ -1,0 +1,192 @@
+#!/bin/bash
+
+# claude-resume - Automatically resume Claude sessions found by claude-filter
+# Author: Warren Zhu
+# Description: Wrapper around claude-filter that automatically executes resume commands
+
+set -e
+
+# Default values
+INTERACTIVE=false
+FILTER_FLAGS=""
+SEARCH_TERM=""
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to display help
+show_help() {
+    cat << EOF
+Usage: claude-resume [OPTIONS] "search term"
+
+Automatically resume Claude sessions by searching with claude-filter and executing the result.
+
+Options:
+  -i, --interactive   Show all matches and let user choose which to resume
+  -h, --help         Show this help message
+  
+  All other flags are passed through to claude-filter (e.g., -a, -v, -r)
+
+Examples:
+  claude-resume "my project"              # Resume most recent "my project" session
+  claude-resume -i "test"                  # Interactively choose from "test" sessions
+  claude-resume -a "global search"        # Search all directories for sessions
+
+Note: This tool requires claude-filter to be installed and accessible in PATH.
+EOF
+}
+
+# Function to check if claude-filter exists
+check_dependencies() {
+    if ! command -v claude-filter &> /dev/null; then
+        echo -e "${RED}Error: claude-filter not found in PATH${NC}" >&2
+        echo "Please ensure claude-filter is installed and accessible." >&2
+        exit 1
+    fi
+}
+
+# Parse command line arguments
+# Separate filter-specific flags from claude-specific flags
+FILTER_FLAGS=""
+CLAUDE_FLAGS=""
+SEARCH_TERM=""
+EXPECTING_VALUE=false
+LAST_FLAG=""
+NON_FLAG_COUNT=0
+
+# Process arguments in order
+for arg in "$@"; do
+    # Handle special claude-resume flags first
+    if [[ "$arg" == "-i" ]] || [[ "$arg" == "--interactive" ]]; then
+        INTERACTIVE=true
+        EXPECTING_VALUE=false
+        continue
+    elif [[ "$arg" == "-h" ]] || [[ "$arg" == "--help" ]]; then
+        show_help
+        exit 0
+    fi
+    
+    # Check if we're expecting a value for a previous flag
+    if $EXPECTING_VALUE; then
+        CLAUDE_FLAGS="$CLAUDE_FLAGS $arg"
+        EXPECTING_VALUE=false
+        continue
+    fi
+    
+    # Check if this is a filter-specific flag
+    if [[ "$arg" == "-a" ]] || [[ "$arg" == "--all" ]] || \
+       [[ "$arg" == "-v" ]] || [[ "$arg" == "--verbose" ]] || \
+       [[ "$arg" == "-r" ]] || [[ "$arg" == "--resume" ]]; then
+        FILTER_FLAGS="$FILTER_FLAGS $arg"
+    # Check if this is any other flag
+    elif [[ "$arg" == -* ]]; then
+        CLAUDE_FLAGS="$CLAUDE_FLAGS $arg"
+        # Some flags might expect a value (e.g., --model)
+        # Assume flags with -- might need a value, single - usually don't
+        if [[ "$arg" == --* ]] && [[ "$arg" != "--dangerously-skip-permissions" ]] && \
+           [[ "$arg" != "--debug" ]] && [[ "$arg" != "--no-cache" ]]; then
+            EXPECTING_VALUE=true
+            LAST_FLAG="$arg"
+        fi
+    else
+        # Not a flag, so it should be the search term
+        NON_FLAG_COUNT=$((NON_FLAG_COUNT + 1))
+        if [ $NON_FLAG_COUNT -gt 1 ]; then
+            echo -e "${RED}Error: Multiple search terms provided ('$SEARCH_TERM' and '$arg')${NC}" >&2
+            echo "Usage: claude-resume [OPTIONS] \"search term\"" >&2
+            exit 1
+        fi
+        SEARCH_TERM="$arg"
+    fi
+done
+
+# Check if a flag was expecting a value but didn't get one
+if $EXPECTING_VALUE; then
+    echo -e "${RED}Error: Flag '$LAST_FLAG' expects a value${NC}" >&2
+    exit 1
+fi
+
+# Trim leading/trailing spaces
+FILTER_FLAGS=$(echo "$FILTER_FLAGS" | sed 's/^ *//;s/ *$//')
+CLAUDE_FLAGS=$(echo "$CLAUDE_FLAGS" | sed 's/^ *//;s/ *$//')
+
+# Check if search term was provided
+if [ -z "$SEARCH_TERM" ]; then
+    echo -e "${RED}Error: No search term provided${NC}" >&2
+    show_help
+    exit 1
+fi
+
+# Check dependencies
+check_dependencies
+
+# Run claude-filter and capture results
+echo -e "${BLUE}Searching for sessions matching: '$SEARCH_TERM'...${NC}" >&2
+
+RESULTS=$(claude-filter $FILTER_FLAGS -r "$SEARCH_TERM" 2>/dev/null || true)
+
+if [ -z "$RESULTS" ]; then
+    echo -e "${YELLOW}No sessions found matching '$SEARCH_TERM'${NC}" >&2
+    exit 1
+fi
+
+# Count number of results
+NUM_RESULTS=$(echo "$RESULTS" | wc -l | tr -d ' ')
+
+# Interactive mode
+if $INTERACTIVE; then
+    echo -e "${GREEN}Found $NUM_RESULTS session(s):${NC}" >&2
+    echo "" >&2
+    
+    # Display numbered list
+    i=1
+    while IFS= read -r line; do
+        # Extract just the session ID and directory for display
+        DIR=$(echo "$line" | sed -n 's/cd "\([^"]*\)".*/\1/p')
+        SESSION=$(echo "$line" | sed -n 's/.*--resume \([^ ]*\).*/\1/p')
+        echo -e "${YELLOW}[$i]${NC} ${DIR##*/} (${SESSION:0:8}...)" >&2
+        i=$((i+1))
+    done <<< "$RESULTS"
+    
+    echo "" >&2
+    echo -n "Enter selection (1-$NUM_RESULTS, or 'q' to quit): " >&2
+    read -r SELECTION
+    
+    if [ "$SELECTION" = "q" ] || [ "$SELECTION" = "Q" ]; then
+        echo -e "${YELLOW}Cancelled${NC}" >&2
+        exit 0
+    fi
+    
+    if ! [[ "$SELECTION" =~ ^[0-9]+$ ]] || [ "$SELECTION" -lt 1 ] || [ "$SELECTION" -gt "$NUM_RESULTS" ]; then
+        echo -e "${RED}Invalid selection${NC}" >&2
+        exit 1
+    fi
+    
+    # Get the selected command
+    COMMAND=$(echo "$RESULTS" | sed -n "${SELECTION}p")
+else
+    # Non-interactive mode: just get the first result
+    COMMAND=$(echo "$RESULTS" | head -n 1)
+    echo -e "${GREEN}Found $NUM_RESULTS session(s), resuming most recent...${NC}" >&2
+fi
+
+if [ -z "$COMMAND" ]; then
+    echo -e "${RED}Error: Could not extract command${NC}" >&2
+    exit 1
+fi
+
+# Append claude flags to the command if any were provided
+if [ -n "$CLAUDE_FLAGS" ]; then
+    COMMAND="$COMMAND $CLAUDE_FLAGS"
+fi
+
+# Display what will be executed
+echo -e "${BLUE}Executing: $COMMAND${NC}" >&2
+echo "" >&2
+
+# Execute the command
+eval "$COMMAND"

@@ -133,6 +133,7 @@ To reconfigure your prefix keys after installation:
   - Essential multilevel navigation scripts
 - **Utility scripts**: `~/.local/bin/tmux-multilevel/utility/`
   - Optional tools like `worktree-tmux`
+  - There is also a claude-resume utility script that comes in handy when managing multiple claude sessions, and cannot find a previous claude session
 
 ## 🛠 Requirements
 
