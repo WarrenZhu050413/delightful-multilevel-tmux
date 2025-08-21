@@ -29,6 +29,27 @@ validate_tmux_key() {
     fi
 }
 
+# Function to read and validate prefix key
+read_prefix_key() {
+    local prompt="$1"
+    local default="$2"
+    local other_prefix="$3"
+    
+    while true; do
+        read -p "$prompt" key
+        key=${key:-$default}
+        
+        if ! validate_tmux_key "$key"; then
+            echo "❌ Invalid key format. Use format like C-x, M-x, or F1"
+        elif [[ -n "$other_prefix" ]] && [[ "$key" == "$other_prefix" ]]; then
+            echo "❌ Secondary prefix must be different from primary prefix"
+        else
+            echo "$key"
+            return
+        fi
+    done
+}
+
 # Configure prefix keys
 echo ""
 echo "📋 Configure your prefix keys:"
@@ -36,33 +57,9 @@ echo "   The primary prefix is used when a session is active at its level"
 echo "   The secondary prefix is used for passthrough (inactive sessions)"
 echo ""
 
-# Primary prefix
-while true; do
-    read -p "Enter primary prefix key (default: C-x): " primary_prefix
-    primary_prefix=${primary_prefix:-C-x}
-    
-    if validate_tmux_key "$primary_prefix"; then
-        break
-    else
-        echo "❌ Invalid key format. Use format like C-x, M-x, or F1"
-    fi
-done
-
-# Secondary prefix
-while true; do
-    read -p "Enter secondary prefix key (default: C-a): " secondary_prefix
-    secondary_prefix=${secondary_prefix:-C-a}
-    
-    if validate_tmux_key "$secondary_prefix"; then
-        if [[ "$secondary_prefix" == "$primary_prefix" ]]; then
-            echo "❌ Secondary prefix must be different from primary prefix"
-        else
-            break
-        fi
-    else
-        echo "❌ Invalid key format. Use format like C-x, M-x, or F1"
-    fi
-done
+# Read prefix keys
+primary_prefix=$(read_prefix_key "Enter primary prefix key (default: C-x): " "C-x" "")
+secondary_prefix=$(read_prefix_key "Enter secondary prefix key (default: C-a): " "C-a" "$primary_prefix")
 
 # Warnings for common conflicts
 if [[ "$primary_prefix" == "C-b" ]] || [[ "$secondary_prefix" == "C-b" ]]; then
@@ -101,15 +98,12 @@ EOF
 
 chmod +x ~/.local/bin/tmux-multilevel/config.sh
 
-# Copy core scripts
-echo "📋 Copying core scripts..."
-cp scripts/core/* ~/.local/bin/tmux-multilevel/core/
-chmod +x ~/.local/bin/tmux-multilevel/core/*
-
-# Copy utility scripts
-echo "📋 Copying utility scripts..."
-cp scripts/utility/* ~/.local/bin/tmux-multilevel/utility/
-chmod +x ~/.local/bin/tmux-multilevel/utility/*
+# Copy and make executable all scripts
+for dir in core utility; do
+    echo "📋 Copying $dir scripts..."
+    cp scripts/$dir/* ~/.local/bin/tmux-multilevel/$dir/
+    chmod +x ~/.local/bin/tmux-multilevel/$dir/*
+done
 
 # Create symlinks for all scripts
 echo "🔗 Creating symlinks for direct access..."
@@ -366,49 +360,42 @@ unbind -n S-Enter
 EOF
 
 # Check if ~/.local/bin and subdirectories are in PATH
-PATH_WARNING=""
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    PATH_WARNING="~/.local/bin"
-fi
+missing_paths=()
+[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && missing_paths+=("~/.local/bin")
+[[ ":$PATH:" != *":$HOME/.local/bin/tmux-multilevel:"* ]] && missing_paths+=("~/.local/bin/tmux-multilevel")
 
-if [[ ":$PATH:" != *":$HOME/.local/bin/tmux-multilevel:"* ]]; then
-    if [[ -n "$PATH_WARNING" ]]; then
-        PATH_WARNING="$PATH_WARNING and ~/.local/bin/tmux-multilevel"
-    else
-        PATH_WARNING="~/.local/bin/tmux-multilevel"
-    fi
-fi
-
-if [[ -n "$PATH_WARNING" ]]; then
+if [[ ${#missing_paths[@]} -gt 0 ]]; then
     echo ""
-    echo "⚠️  $PATH_WARNING not in your PATH"
+    echo "⚠️  ${missing_paths[*]} not in your PATH"
     echo "   Add this to your ~/.bashrc or ~/.zshrc:"
     echo "   export PATH=\"\$HOME/.local/bin/tmux-multilevel:\$HOME/.local/bin:\$PATH\""
     echo ""
 fi
 
-echo ""
-echo "✅ Scripts installed successfully!"
-echo ""
-echo "📋 NEXT STEPS:"
-echo "1. 📄 Copy 'tmux.conf.generated' to your ~/.tmux.conf"
-echo "   cp tmux.conf.generated ~/.tmux.conf"
-echo "2. 🔄 Reload: tmux source-file ~/.tmux.conf"  
-echo "3. 🧪 Test: tmux-level-help"
-echo ""
-echo "🎯 YOUR CONFIGURATION:"
-echo "   Primary prefix:   $primary_prefix (active sessions)"
-echo "   Secondary prefix: $secondary_prefix (passthrough)"
-echo ""
-echo "🌳 NEW: Try 'worktree-tmux' for git worktree + multilevel tmux magic!"
-echo "   Perfect for parallel development with Claude Code!"
-echo ""
-echo "🔨 UTILITY TOOLS: Use --help to learn about optional tools like:"
-echo "   • worktree-tmux - Git worktree management"
-echo "   • claude-resume - Resume Claude sessions easily"
-echo ""
-echo "📖 See README.md for detailed instructions"
-echo "🔧 To change prefixes later, edit ~/.local/bin/tmux-multilevel/config.sh"
-echo "   Then re-run this installer to regenerate tmux.conf"
-echo ""
-echo "🎉 Happy multilevel tmux navigation with $primary_prefix!"
+cat << END
+
+✅ Scripts installed successfully!
+
+📋 NEXT STEPS:
+1. 📄 Copy 'tmux.conf.generated' to your ~/.tmux.conf
+   cp tmux.conf.generated ~/.tmux.conf
+2. 🔄 Reload: tmux source-file ~/.tmux.conf  
+3. 🧪 Test: tmux-level-help
+
+🎯 YOUR CONFIGURATION:
+   Primary prefix:   $primary_prefix (active sessions)
+   Secondary prefix: $secondary_prefix (passthrough)
+
+🌳 NEW: Try 'worktree-tmux' for git worktree + multilevel tmux magic!
+   Perfect for parallel development with Claude Code!
+
+🔨 UTILITY TOOLS: Use --help to learn about optional tools like:
+   • worktree-tmux - Git worktree management
+   • claude-resume - Resume Claude sessions easily
+
+📖 See README.md for detailed instructions
+🔧 To change prefixes later, edit ~/.local/bin/tmux-multilevel/config.sh
+   Then re-run this installer to regenerate tmux.conf
+
+🎉 Happy multilevel tmux navigation with $primary_prefix!
+END
