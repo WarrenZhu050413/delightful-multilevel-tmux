@@ -27,6 +27,7 @@ Automatically resume Claude sessions by searching with claude-filter and executi
 
 Options:
   -i, --interactive   Show all matches and let user choose which to resume
+  -d                  Pass --dangerously-skip-permissions flag to claude
   -h, --help         Show this help message
   
   All other flags are passed through to claude-filter (e.g., -a, -v, -r)
@@ -68,6 +69,11 @@ for arg in "$@"; do
     elif [[ "$arg" == "-h" ]] || [[ "$arg" == "--help" ]]; then
         show_help
         exit 0
+    elif [[ "$arg" == "-d" ]]; then
+        # Convert -d to --dangerously-skip-permissions for claude
+        CLAUDE_FLAGS="$CLAUDE_FLAGS --dangerously-skip-permissions"
+        EXPECTING_VALUE=false
+        continue
     fi
     
     # Check if we're expecting a value for a previous flag

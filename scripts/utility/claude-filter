@@ -1,0 +1,154 @@
+#!/bin/bash
+
+# claude-filter.sh - Filter Claude Code sessions by content and directory
+# Usage: ./claude-filter.sh [OPTIONS] "search term"
+# Output: Session IDs (newest first) that match the search criteria
+
+# Default values
+ALL_DIRS=false
+VERBOSE=false
+RESUME_MODE=false
+CURRENT_DIR=$(pwd)
+CURRENT_PROJECT=$(echo "$CURRENT_DIR" | sed 's/\//-/g' | sed 's/_/-/g')
+
+# Parse command line options
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -a|--all)
+            ALL_DIRS=true
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -r|--resume)
+            RESUME_MODE=true
+            shift
+            ;;
+        --install)
+            INSTALL_DIR="/usr/local/bin"
+            if [ -w "$INSTALL_DIR" ]; then
+                cp "$0" "$INSTALL_DIR/claude-filter"
+                chmod +x "$INSTALL_DIR/claude-filter"
+                echo "✅ Installed claude-filter to $INSTALL_DIR"
+                echo "You can now use 'claude-filter' from anywhere!"
+            else
+                echo "Installing to $INSTALL_DIR (requires sudo):"
+                sudo cp "$0" "$INSTALL_DIR/claude-filter"
+                sudo chmod +x "$INSTALL_DIR/claude-filter"
+                echo "✅ Installed claude-filter to $INSTALL_DIR"
+                echo "You can now use 'claude-filter' from anywhere!"
+            fi
+            exit 0
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS] \"search term\"" >&2
+            echo "" >&2
+            echo "Options:" >&2
+            echo "  -a, --all      Search all directories (not just current)" >&2
+            echo "  -v, --verbose  Show directory info and last message for each session" >&2
+            echo "  -r, --resume   Output ready-to-use resume commands" >&2
+            echo "  --install      Install claude-filter system-wide" >&2
+            echo "  -h, --help     Show this help message" >&2
+            echo "" >&2
+            echo "Examples:" >&2
+            echo "  $0 \"email\"                 # Find sessions in current dir" >&2
+            echo "  $0 -a \"email\"              # Find sessions in all dirs" >&2
+            echo "  $0 -v \"email\"              # Show with directory info" >&2
+            echo "  $0 -r \"email\" | head -1 | bash  # Resume most recent match" >&2
+            echo "" >&2
+            echo "Setup:" >&2
+            echo "  $0 --install               # Install system-wide as 'claude-filter'" >&2
+            exit 0
+            ;;
+        *)
+            SEARCH="$1"
+            shift
+            ;;
+    esac
+done
+
+# Validate arguments
+if [ -z "$SEARCH" ]; then
+    echo "Error: Search term required" >&2
+    echo "Usage: $0 [OPTIONS] \"search term\"" >&2
+    echo "Try: $0 --help" >&2
+    exit 1
+fi
+
+# Build the directory path
+BASE_DIR="$HOME/.claude/projects"
+if [ "$ALL_DIRS" = true ]; then
+    PROJECT_DIR="$BASE_DIR/*"
+else
+    # Only search in the current project directory
+    PROJECT_DIR="$BASE_DIR/$CURRENT_PROJECT"
+    if [ ! -d "$PROJECT_DIR" ]; then
+        echo "No sessions found for current directory: $CURRENT_DIR" >&2
+        echo "Try using -a flag to search all directories" >&2
+        exit 1
+    fi
+fi
+
+# Process files sorted by modification time (newest first)
+for dir in $PROJECT_DIR; do
+    [ -d "$dir" ] || continue
+    
+    # List files in this directory sorted by time
+    ls -t "$dir"/*.jsonl 2>/dev/null | while read -r file; do
+        [ -f "$file" ] || continue
+        
+        # Check if file contains search term in any message content
+        if cat "$file" | jq -r '.message.content // ""' 2>/dev/null | grep -qi "$SEARCH"; then
+            SESSION_ID=$(basename "$file" .jsonl)
+            
+            if [ "$RESUME_MODE" = true ]; then
+                # Get the original working directory from the session
+                CWD=$(cat "$file" | jq -r 'select(.cwd) | .cwd' | head -1)
+                if [ -n "$CWD" ]; then
+                    echo "cd \"$CWD\" && claude --resume $SESSION_ID"
+                fi
+            elif [ "$VERBOSE" = true ]; then
+                # Show session with directory info and last message
+                DIR_NAME=$(basename "$dir")
+                ORIGINAL_DIR=$(echo "$DIR_NAME" | sed 's/-/\//g')
+                
+                # Get the last user or assistant message
+                # Handle both string content and complex content objects
+                LAST_MSG=$(cat "$file" | jq -r '
+                    select(.type == "user" or .type == "assistant") | 
+                    if .message.content | type == "string" then 
+                        .message.content 
+                    elif .message.content | type == "array" then 
+                        .message.content[0].text // ""
+                    else 
+                        ""
+                    end' 2>/dev/null | \
+                    grep -v "^$" | \
+                    tail -1 | \
+                    tr '\n' ' ' | \
+                    sed 's/  */ /g' | \
+                    sed 's/^ *//' | \
+                    sed 's/ *$//' | \
+                    cut -c 1-100)
+                
+                # Add ellipsis if truncated
+                if [ ${#LAST_MSG} -eq 100 ]; then
+                    LAST_MSG="${LAST_MSG}..."
+                fi
+                
+                # Default message if empty
+                if [ -z "$LAST_MSG" ]; then
+                    LAST_MSG="[No readable content]"
+                fi
+                
+                echo "$SESSION_ID (from: $ORIGINAL_DIR)"
+                echo "  └─ \"$LAST_MSG\""
+            else
+                # Just output the session ID
+                echo "$SESSION_ID"
+            fi
+        fi
+    done
+done

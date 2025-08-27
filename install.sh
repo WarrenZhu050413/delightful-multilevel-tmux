@@ -118,6 +118,38 @@ for script in ~/.local/bin/tmux-multilevel/{core,utility}/*; do
     ln -sf "tmux-multilevel/$relpath" ~/.local/bin/"$basename"
 done
 
+# Optional: Create system-wide symlinks for Claude utilities
+echo ""
+echo "📦 Optional: Install Claude utilities system-wide for global access?"
+echo "   This will create symlinks in /usr/local/bin for:"
+echo "   • claude-filter - Search and filter Claude sessions"
+echo "   • claude-resume - Resume Claude sessions easily"
+read -p "Install Claude utilities system-wide? (y/N): " install_claude
+
+if [[ "$install_claude" =~ ^[Yy]$ ]]; then
+    echo "🔗 Creating system-wide symlinks for Claude utilities..."
+    
+    # Check if we can write to /usr/local/bin
+    if [ -w "/usr/local/bin" ]; then
+        # Create symlinks for Claude utilities
+        for util in claude-filter claude-resume; do
+            if [ -f "$HOME/.local/bin/tmux-multilevel/utility/$util" ]; then
+                ln -sf "$HOME/.local/bin/tmux-multilevel/utility/$util" "/usr/local/bin/$util"
+                echo "   ✅ Linked $util to /usr/local/bin"
+            fi
+        done
+    else
+        echo "   ⚠️  Need sudo access to install to /usr/local/bin"
+        for util in claude-filter claude-resume; do
+            if [ -f "$HOME/.local/bin/tmux-multilevel/utility/$util" ]; then
+                sudo ln -sf "$HOME/.local/bin/tmux-multilevel/utility/$util" "/usr/local/bin/$util"
+                echo "   ✅ Linked $util to /usr/local/bin"
+            fi
+        done
+    fi
+    echo "   📋 Claude utilities are now available globally!"
+fi
+
 # Generate tmux.conf with user's chosen prefixes
 echo "📄 Generating tmux.conf.generated with your configuration..."
 cat > tmux.conf.generated << EOF
@@ -392,6 +424,7 @@ cat << END
 🔨 UTILITY TOOLS: Use --help to learn about optional tools like:
    • worktree-tmux - Git worktree management
    • claude-resume - Resume Claude sessions easily
+   • claude-filter - Search and filter Claude sessions
 
 📖 See README.md for detailed instructions
 🔧 To change prefixes later, edit ~/.local/bin/tmux-multilevel/config.sh
